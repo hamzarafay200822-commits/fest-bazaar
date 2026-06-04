@@ -1,0 +1,200 @@
+{
+  "bookings": [],
+  "capital": [],
+  "expenses": [],
+  "archive": [
+    {
+      "id": "EVT-1780351001377",
+      "name": "Event - 02 Jun 2026",
+      "archived_date": "2026-06-01T21:56:41.377Z",
+      "bookings_count": 4,
+      "revenue": 35000,
+      "capital_amount": 47000,
+      "expenses_amount": 521015,
+      "net_profit": -486015,
+      "bookings_json": [
+        {
+          "stall": "G14",
+          "zone": "Grand Tree District",
+          "vendor": "hamza",
+          "brand": "hamza",
+          "phone": "03000201172",
+          "items": "hamza",
+          "total": 15000,
+          "paid": 5000,
+          "due": 10000,
+          "paymentStatus": "partial",
+          "logoUrl": "",
+          "clearedDate": "",
+          "date": "02-Jun-2026"
+        },
+        {
+          "stall": "F10",
+          "zone": "Food Stalls",
+          "vendor": "hamza",
+          "brand": "hamza",
+          "phone": "03000201150",
+          "items": "52",
+          "total": 5600,
+          "paid": 5200,
+          "due": 400,
+          "paymentStatus": "partial",
+          "logoUrl": "/uploads/F10_1780350735517.jpeg",
+          "clearedDate": "",
+          "date": "02-Jun-2026"
+        },
+        {
+          "stall": "G11",
+          "zone": "Grand Tree District",
+          "vendor": "hamza",
+          "brand": "is the best",
+          "phone": "03000201181",
+          "items": "hamza",
+          "total": 85000,
+          "paid": 9800,
+          "due": 75200,
+          "paymentStatus": "partial",
+          "logoUrl": "/uploads/G11_1780350770663.JPG",
+          "clearedDate": "",
+          "date": "02-Jun-2026"
+        },
+        {
+          "stall": "G13",
+          "zone": "Grand Tree District",
+          "vendor": "rayyan",
+          "brand": "akhter",
+          "phone": "03008292792",
+          "items": "man",
+          "total": 15000,
+          "paid": 15000,
+          "due": 0,
+          "paymentStatus": "cleared",
+          "logoUrl": "",
+          "clearedDate": "",
+          "date": "02-Jun-2026"
+        }
+      ],
+      "financials_json": {
+        "capital": [
+          {
+            "id": "CAP-1780350882636",
+            "date": "02-Jun-2026",
+            "description": "araiz",
+            "amount": 23000
+          },
+          {
+            "id": "CAP-1780350868701",
+            "date": "02-Jun-2026",
+            "description": "khubaib",
+            "amount": 2000
+          },
+          {
+            "id": "CAP-1780350854326",
+            "date": "02-Jun-2026",
+            "description": "abdullah",
+            "amount": 20000
+          },
+          {
+            "id": "CAP-1780350844857",
+            "date": "02-Jun-2026",
+            "description": "hamza",
+            "amount": 2000
+          }
+        ],
+        "expenses": [
+          {
+            "id": "EXP-1780350989499",
+            "date": "02-Jun-2026",
+            "category": "Miscellaneous",
+            "description": "dinner",
+            "amount": 20000
+          },
+          {
+            "id": "EXP-1780350983376",
+            "date": "02-Jun-2026",
+            "category": "Miscellaneous",
+            "description": "random",
+            "amount": 23000
+          },
+          {
+            "id": "EXP-1780350972672",
+            "date": "02-Jun-2026",
+            "category": "Decoration/Setup",
+            "description": "ali decor",
+            "amount": 150000
+          },
+          {
+            "id": "EXP-1780350957898",
+            "date": "02-Jun-2026",
+            "category": "Staff/Volunteers",
+            "description": "head volunteer'",
+            "amount": 15
+          },
+          {
+            "id": "EXP-1780350945436",
+            "date": "02-Jun-2026",
+            "category": "Staff/Volunteers",
+            "description": "volunteers",
+            "amount": 15000
+          },
+          {
+            "id": "EXP-1780350933078",
+            "date": "02-Jun-2026",
+            "category": "Logistics",
+            "description": "decor delivery",
+            "amount": 3000
+          },
+          {
+            "id": "EXP-1780350919813",
+            "date": "02-Jun-2026",
+            "category": "Marketing/Ads",
+            "description": "banners'",
+            "amount": 42000
+          },
+          {
+            "id": "EXP-1780350909849",
+            "date": "02-Jun-2026",
+            "category": "Marketing/Ads",
+            "description": "meta ads",
+            "amount": 68000
+          },
+          {
+            "id": "EXP-1780350900266",
+            "date": "02-Jun-2026",
+            "category": "Venue Rent",
+            "description": "stage",
+            "amount": 20000
+          },
+          {
+            "id": "EXP-1780350893100",
+            "date": "02-Jun-2026",
+            "category": "Venue Rent",
+            "description": "habitt",
+            "amount": 180000
+          }
+        ],
+        "summary": {
+          "totalCapital": 47000,
+          "revenueCollected": 35000,
+          "revenueExpected": 120600,
+          "revenueOutstanding": 85600,
+          "totalExpenses": 521015,
+          "netProfit": -486015,
+          "profitMargin": -1388.6142857142859,
+          "roi": -1034.0744680851064,
+          "breakeven": false
+        },
+        "breakdown": {
+          "Venue Rent": 200000,
+          "Marketing/Ads": 110000,
+          "Staff/Volunteers": 15015,
+          "Decoration/Setup": 150000,
+          "Logistics": 3000,
+          "Utilities": 0,
+          "Equipment": 0,
+          "Miscellaneous": 43000
+        }
+      }
+    }
+  ]
+}

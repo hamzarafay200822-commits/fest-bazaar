@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Fest Bazaar — Stall Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ───────────────────────────────────────────────────── */
+:root {
+  --ink:#1A1A2E; --paper:#FDFAF5; --saffron:#E8720C; --teal:#1B6B5A;
+  --rose:#C94B4B; --sky:#3B82C4; --cream:#F5EFE0; --muted:#8A7E6E;
+  --border:#E2D9C8; --shadow:rgba(26,26,46,0.12);
+  --food:#E8720C; --grand:#1B6B5A; --city:#3B82C4; --passage:#C94B4B;
+  --food-bg:#FFF3E8; --grand-bg:#E8F5F0; --city-bg:#E8F0FA; --passage-bg:#FAE8E8;
+  --cleared:#2D7A4F; --partial:#B8860B; --pending:#C94B4B;
+  --cleared-bg:#E8F5EE; --partial-bg:#FFF8E1; --pending-bg:#FDEAEA;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;overflow-x:hidden;}
+
+/* ── HEADER ──────────────────────────────────────────────────── */
+.header{background:linear-gradient(135deg,#1A1A2E 0%,#0F3460 100%);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;box-shadow:0 2px 20px var(--shadow);}
+.logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.5px;}
+.logo span{color:var(--saffron);}
+.logo-version{font-size:9px;color:rgba(255,255,255,0.35);margin-left:8px;font-family:monospace;align-self:flex-end;margin-bottom:14px;}
+.sync-status{font-size:12px;color:rgba(255,255,255,0.55);display:flex;align-items:center;gap:6px;}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#4CAF50;flex-shrink:0;}
+.sync-dot.synced{background:#4CAF50;}
+.sync-dot.syncing{background:var(--saffron);animation:pulse 0.8s infinite;}
+.sync-dot.offline{background:#F44336;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+/* ── TABS ────────────────────────────────────────────────────── */
+.tabs{display:flex;background:var(--cream);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:64px;z-index:99;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{padding:14px 24px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.2s;flex-shrink:0;}
+.tab:hover{color:var(--ink);}
+.tab.active{color:var(--saffron);border-bottom-color:var(--saffron);font-weight:600;}
+
+/* ── VIEWS ───────────────────────────────────────────────────── */
+.view{display:none;padding:24px;max-width:1200px;margin:0 auto;}
+.view.active{display:block;}
+
+/* ── KPI GRID ────────────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:28px;}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px;text-align:center;box-shadow:0 2px 12px var(--shadow);transition:transform 0.15s;}
+.kpi:hover{transform:translateY(-2px);}
+.kpi-value{font-family:'Inter',sans-serif;font-size:38px;font-weight:800;line-height:1;margin-bottom:6px;letter-spacing:-1px;font-variant-numeric:tabular-nums;}
+.kpi-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);}
+.kpi.booked .kpi-value{color:var(--teal);}
+.kpi.available .kpi-value{color:var(--sky);}
+.kpi.cleared .kpi-value{color:var(--cleared);}
+.kpi.partial .kpi-value{color:var(--partial);}
+.kpi.pending .kpi-value{color:var(--pending);}
+
+/* ── SECTION TITLES ──────────────────────────────────────────── */
+.section-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:16px;color:var(--ink);}
+
+/* ── FINANCE CARDS ───────────────────────────────────────────── */
+.finance-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px;}
+.finance-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;box-shadow:0 2px 8px var(--shadow);}
+.finance-card .label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.7px;color:var(--muted);margin-bottom:6px;}
+.finance-card .amount{font-family:'Inter',sans-serif;font-size:26px;font-weight:800;letter-spacing:-0.5px;font-variant-numeric:tabular-nums;}
+.finance-card.total .amount{color:var(--ink);}
+.finance-card.collected .amount{color:var(--cleared);}
+.finance-card.outstanding .amount{color:var(--pending);}
+
+/* ── ZONE CARDS ──────────────────────────────────────────────── */
+.zone-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:28px;}
+.zone-card{border-radius:12px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;border:1px solid transparent;}
+.zone-card.food{background:var(--food-bg);border-color:#f0c89a;}
+.zone-card.grand{background:var(--grand-bg);border-color:#9ecfb8;}
+.zone-card.city{background:var(--city-bg);border-color:#a8c4e8;}
+.zone-card.passage{background:var(--passage-bg);border-color:#e8a8a8;}
+.zone-name{font-weight:600;font-size:14px;}
+.zone-count{font-family:'Inter',sans-serif;font-size:30px;font-weight:800;letter-spacing:-1px;font-variant-numeric:tabular-nums;}
+.zone-card.food .zone-count{color:var(--food);}
+.zone-card.grand .zone-count{color:var(--grand);}
+.zone-card.city .zone-count{color:var(--city);}
+.zone-card.passage .zone-count{color:var(--passage);}
+
+/* ── FLOOR MAP ───────────────────────────────────────────────── */
+.map-controls{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.map-legend{display:flex;gap:12px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;}
+.legend-dot{width:12px;height:12px;border-radius:3px;}
+.map-container{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px;overflow-x:auto;box-shadow:0 2px 16px var(--shadow);}
+.floor-map{position:relative;width:660px;min-height:1260px;margin:0 auto;background:#F8F6F0;border-radius:12px;font-size:11px;}
+.stall{position:absolute;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;cursor:pointer;transition:all 0.2s;border:2px solid transparent;user-select:none;}
+.stall:hover{transform:scale(1.08);z-index:10;box-shadow:0 4px 16px rgba(0,0,0,0.2);}
+.stall.food{background:#FFD580;border-color:#E8A800;color:#7A4A00;}
+.stall.grand{background:#7FD4A0;border-color:#2A8A50;color:#0A4A20;}
+.stall.city{background:#90C8F0;border-color:#2060A8;color:#0A2860;}
+.stall.passage{background:#F08080;border-color:#C02020;color:#600A0A;}
+.stall.booked{background:#C8C8C8!important;border-color:#888!important;color:#555!important;opacity:0.7;}
+.stall.selected{transform:scale(1.1);z-index:20;box-shadow:0 0 0 3px var(--saffron),0 4px 20px rgba(232,114,12,0.4);}
+.map-label{position:absolute;font-size:10px;font-weight:700;color:#fff;background:var(--ink);padding:3px 8px;border-radius:4px;letter-spacing:0.5px;}
+
+/* ── DETAIL PANEL ────────────────────────────────────────────── */
+.detail-panel{display:none;position:fixed;right:0;top:0;width:min(400px,100vw);height:100vh;background:#fff;box-shadow:-8px 0 40px rgba(0,0,0,0.15);z-index:200;overflow-y:auto;animation:slideIn 0.3s ease;}
+.detail-panel.open{display:flex;flex-direction:column;}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.panel-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--cream);position:sticky;top:0;z-index:10;}
+.panel-stall-id{font-family:'Inter',sans-serif;font-size:30px;font-weight:800;color:var(--ink);letter-spacing:-1px;}
+.panel-zone-badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;}
+.badge-food{background:var(--food-bg);color:var(--food);}
+.badge-grand{background:var(--grand-bg);color:var(--grand);}
+.badge-city{background:var(--city-bg);color:var(--city);}
+.badge-passage{background:var(--passage-bg);color:var(--passage);}
+.close-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background 0.2s;}
+.close-btn:hover{background:var(--cream);}
+.panel-body{padding:20px 24px;flex:1;}
+
+/* ── STATUS BANNER ───────────────────────────────────────────── */
+.status-banner{border-radius:10px;padding:12px 16px;margin-bottom:20px;font-weight:600;font-size:14px;}
+.status-banner.available{background:var(--cleared-bg);color:var(--cleared);}
+.status-banner.booked{background:var(--pending-bg);color:var(--pending);}
+
+/* ── DETAIL GRID ─────────────────────────────────────────────── */
+.detail-grid{display:grid;gap:14px;margin-bottom:20px;}
+.detail-row{display:grid;grid-template-columns:110px 1fr;gap:8px;}
+.detail-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);padding-top:2px;}
+.detail-value{font-size:14px;font-weight:500;color:var(--ink);word-break:break-word;}
+
+/* ── PAYMENT BAR ─────────────────────────────────────────────── */
+.payment-bar{background:var(--cream);border-radius:12px;padding:16px;margin-bottom:20px;}
+.payment-bar .pb-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);margin-bottom:8px;}
+.progress-track{height:8px;background:#E2D9C8;border-radius:4px;overflow:hidden;margin-bottom:8px;}
+.progress-fill{height:100%;border-radius:4px;background:var(--teal);transition:width 0.5s ease;}
+.pb-amounts{display:flex;justify-content:space-between;font-size:12px;font-weight:600;}
+
+/* ── BOOKING FORM ────────────────────────────────────────────── */
+.booking-form{display:grid;gap:14px;}
+.form-group{display:grid;gap:6px;}
+.form-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);}
+.form-input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;background:#fff;outline:none;transition:border-color 0.2s;}
+.form-input:focus{border-color:var(--saffron);box-shadow:0 0 0 3px rgba(232,114,12,0.1);}
+.form-input.error{border-color:var(--rose);}
+.num-input{font-family:'Inter',sans-serif;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-0.2px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.due-display{padding:10px 14px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:700;color:var(--pending);font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-0.2px;}
+
+/* ── BUTTONS ─────────────────────────────────────────────────── */
+.btn-book{width:100%;padding:14px;background:var(--saffron);color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;margin-top:4px;}
+.btn-book:hover:not(:disabled){background:#d4620a;transform:translateY(-1px);}
+.btn-book:disabled{background:#aaa;cursor:not-allowed;transform:none;}
+.btn-secondary{width:100%;padding:11px;background:#fff;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;margin-top:8px;}
+.btn-teal{color:var(--teal);border:1.5px solid var(--teal);}
+.btn-teal:hover{background:var(--grand-bg);}
+.btn-green{background:var(--teal);color:#fff;border:none;font-size:14px;font-weight:700;padding:12px;}
+.btn-green:hover{background:#155a49;}
+.btn-red-outline{color:var(--rose);border:1.5px solid var(--rose);}
+.btn-red-outline:hover{background:var(--pending-bg);}
+.btn-red-solid{background:var(--rose);color:#fff;border:none;}
+.btn-grey{background:#888;color:#fff;border:none;}
+
+/* ── SEARCH + BOOKING CARDS ──────────────────────────────────── */
+.search-bar{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;margin-bottom:16px;outline:none;transition:border-color 0.2s;}
+.search-bar:focus{border-color:var(--saffron);}
+.booking-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;cursor:pointer;transition:all 0.2s;box-shadow:0 1px 6px var(--shadow);}
+.booking-card:hover{border-color:var(--saffron);transform:translateY(-1px);box-shadow:0 4px 16px var(--shadow);}
+.bc-stall{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-size:14px;font-weight:800;letter-spacing:-0.3px;}
+.bc-stall.food{background:var(--food-bg);color:var(--food);}
+.bc-stall.grand{background:var(--grand-bg);color:var(--grand);}
+.bc-stall.city{background:var(--city-bg);color:var(--city);}
+.bc-stall.passage{background:var(--passage-bg);color:var(--passage);}
+.bc-name{font-weight:600;font-size:14px;}
+.bc-brand{font-size:12px;color:var(--muted);margin-top:2px;}
+.bc-phone{font-size:11px;color:var(--muted);margin-top:2px;}
+.bc-status{text-align:right;font-size:11px;font-weight:700;padding:4px 8px;border-radius:6px;white-space:nowrap;}
+.bc-status.cleared{background:var(--cleared-bg);color:var(--cleared);}
+.bc-status.partial{background:var(--partial-bg);color:var(--partial);}
+.bc-status.pending{background:var(--pending-bg);color:var(--pending);}
+.bc-due{font-size:12px;font-weight:600;margin-top:4px;}
+
+/* ── TOAST ───────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--ink);color:#fff;padding:14px 28px;border-radius:12px;font-size:14px;font-weight:600;z-index:500;transition:transform 0.3s ease;max-width:90vw;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.success{background:var(--teal);}
+.toast.error{background:var(--rose);}
+
+/* ── SUCCESS MODAL ───────────────────────────────────────────── */
+.success-modal{display:none;position:fixed;inset:0;background:rgba(26,26,46,0.85);z-index:600;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px);}
+.success-modal.show{display:flex;animation:fadeIn 0.2s;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.success-card{background:#fff;border-radius:24px;padding:36px 32px;max-width:380px;width:100%;text-align:center;animation:scaleIn 0.3s cubic-bezier(0.34,1.56,0.64,1);}
+@keyframes scaleIn{from{transform:scale(0.5);opacity:0;}to{transform:scale(1);opacity:1;}}
+.success-icon{width:80px;height:80px;border-radius:50%;background:var(--cleared-bg);display:flex;align-items:center;justify-content:center;font-size:48px;margin:0 auto 20px;}
+.success-title{font-family:'Playfair Display',serif;font-size:24px;font-weight:900;color:var(--ink);margin-bottom:8px;}
+.success-stall{display:inline-block;background:var(--ink);color:#fff;padding:4px 12px;border-radius:8px;font-weight:700;font-size:14px;margin-bottom:14px;}
+.success-detail{font-size:14px;color:var(--muted);margin-bottom:24px;line-height:1.5;}
+.success-detail strong{color:var(--ink);}
+.success-close{background:var(--saffron);color:#fff;border:none;padding:12px 32px;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:background 0.2s;}
+.success-close:hover{background:#d4620a;}
+
+/* ── OVERLAY ─────────────────────────────────────────────────── */
+.overlay-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:190;}
+.overlay-bg.open{display:block;}
+.empty-state{text-align:center;padding:48px 24px;color:var(--muted);}
+.empty-state .icon{font-size:48px;margin-bottom:12px;}
+
+/* ── PASSCODE WALL ───────────────────────────────────────────── */
+.passcode-wall{position:fixed;inset:0;background:linear-gradient(160deg,#1A1A2E 0%,#0F3460 60%,#16213E 100%);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:24px;}
+.passcode-wall.hidden{display:none;}
+.passcode-logo{font-family:'Playfair Display',serif;font-size:36px;font-weight:900;color:#fff;margin-bottom:6px;text-align:center;}
+.passcode-logo span{color:var(--saffron);}
+.passcode-sub{font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:40px;text-align:center;}
+.passcode-box{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:32px 28px;width:100%;max-width:340px;text-align:center;backdrop-filter:blur(10px);}
+.passcode-label{font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;}
+.passcode-dots{display:flex;justify-content:center;gap:14px;margin-bottom:28px;}
+.passcode-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);background:transparent;transition:all 0.15s;}
+.passcode-dot.filled{background:var(--saffron);border-color:var(--saffron);transform:scale(1.1);}
+.passcode-dot.error{background:var(--rose);border-color:var(--rose);}
+.passcode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.passcode-key{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:18px 10px;font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;cursor:pointer;user-select:none;transition:all 0.15s;}
+.passcode-key:hover{background:rgba(255,255,255,0.15);}
+.passcode-key:active{transform:scale(0.94);background:rgba(255,255,255,0.2);}
+.passcode-key.del{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:rgba(255,255,255,0.5);}
+.passcode-error{margin-top:16px;font-size:13px;color:var(--rose);min-height:20px;font-weight:500;}
+
+/* ── ADMIN PORTAL ────────────────────────────────────────────── */
+.admin-header{background:linear-gradient(135deg,#1A1A2E,#0F3460);color:#fff;border-radius:16px;padding:24px 28px;margin-bottom:28px;box-shadow:0 4px 20px var(--shadow);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.admin-header-title{font-family:'Playfair Display',serif;font-size:24px;font-weight:900;letter-spacing:-0.5px;}
+.admin-header-sub{font-size:13px;color:rgba(255,255,255,0.6);margin-top:4px;}
+.admin-exit-btn{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);padding:8px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:background 0.2s;}
+.admin-exit-btn:hover{background:rgba(255,255,255,0.2);}
+.admin-section{margin-bottom:28px;}
+.admin-section-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:12px;color:var(--ink);display:flex;align-items:center;gap:8px;}
+.admin-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 2px 10px var(--shadow);}
+.admin-form-row{display:grid;gap:10px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.admin-form-row.cap{grid-template-columns:1fr 180px 110px;}
+.admin-form-row.exp{grid-template-columns:180px 1fr 160px 110px;}
+.admin-add-btn{border:none;border-radius:8px;font-weight:600;font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;color:#fff;padding:10px 18px;transition:opacity 0.2s;}
+.admin-add-btn:hover{opacity:0.9;}
+.admin-add-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.admin-add-btn.teal{background:var(--teal);}
+.admin-add-btn.rose{background:var(--rose);}
+.admin-entry{display:grid;gap:12px;padding:10px 4px;border-bottom:1px solid var(--cream);align-items:center;font-size:14px;}
+.admin-entry:last-child{border-bottom:none;}
+.admin-entry.cap{grid-template-columns:90px 1fr 140px 32px;}
+.admin-entry.exp{grid-template-columns:90px 130px 1fr 140px 32px;}
+.admin-entry-date{font-size:11px;color:var(--muted);}
+.admin-entry-cat{font-size:11px;font-weight:600;background:var(--cream);padding:4px 10px;border-radius:6px;text-align:center;display:inline-block;}
+.admin-entry-desc{font-weight:500;color:var(--ink);}
+.admin-entry-amt{text-align:right;font-weight:700;font-family:'Inter',sans-serif;font-size:15px;letter-spacing:-0.3px;font-variant-numeric:tabular-nums;}
+.admin-entry-amt.teal{color:var(--teal);}
+.admin-entry-amt.rose{color:var(--rose);}
+.admin-entry-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px;border-radius:4px;transition:all 0.2s;}
+.admin-entry-del:hover{background:var(--pending-bg);color:var(--rose);}
+.admin-empty{padding:24px;text-align:center;color:var(--muted);font-size:13px;font-style:italic;}
+
+/* ── P&L KPIS ────────────────────────────────────────────────── */
+.pl-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;}
+.pl-kpi{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px;text-align:center;box-shadow:0 2px 8px var(--shadow);}
+.pl-kpi-value{font-family:'Inter',sans-serif;font-size:24px;font-weight:800;line-height:1.1;margin-bottom:4px;letter-spacing:-0.5px;font-variant-numeric:tabular-nums;}
+.pl-kpi-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);}
+
+/* ── BREAKDOWN BARS ──────────────────────────────────────────── */
+.breakdown-row{margin-bottom:14px;}
+.breakdown-row:last-child{margin-bottom:0;}
+.breakdown-label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;}
+.breakdown-label .name{font-weight:600;color:var(--ink);}
+.breakdown-label .val{color:var(--muted);font-weight:500;}
+.breakdown-bar{height:8px;background:var(--cream);border-radius:4px;overflow:hidden;}
+.breakdown-fill{height:100%;background:linear-gradient(90deg,var(--rose),#e87575);border-radius:4px;transition:width 0.4s ease;}
+
+/* ── HOLD-TO-CONFIRM BUTTON ──────────────────────────────────── */
+.hold-btn{position:relative;width:100%;padding:18px;background:var(--rose);color:#fff;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
+.hold-btn .hold-fill{position:absolute;inset:0;background:rgba(0,0,0,0.25);width:0%;transition:width 0.1s linear;pointer-events:none;}
+.hold-btn .hold-label{position:relative;z-index:2;}
+.hold-btn:disabled{opacity:0.6;cursor:not-allowed;}
+.hold-btn.completing{background:#7a2828;}
+
+/* ── MOBILE ──────────────────────────────────────────────────── */
+@media(max-width:820px){
+  body{font-size:16px;}
+  .header{padding:0 12px;height:54px;}
+  .logo{font-size:19px;}
+  .tabs{top:54px;}
+  .tab{padding:14px 16px;font-size:14px;font-weight:600;flex:1;text-align:center;min-height:48px;display:flex;align-items:center;justify-content:center;}
+  .view{padding:14px 12px 32px;max-width:100%;}
+  .section-title{font-size:19px;margin-bottom:12px;}
+  .kpi-grid{grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;}
+  .kpi{padding:14px 6px;border-radius:14px;}
+  .kpi-value{font-size:28px;margin-bottom:4px;}
+  .kpi-label{font-size:10px;}
+  .finance-row{grid-template-columns:1fr;gap:10px;margin-bottom:22px;}
+  .zone-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+  .zone-count{font-size:32px;}
+  .map-container{padding:6px;border-radius:12px;}
+  .floor-map{transform-origin:top left;}
+  .search-bar{padding:14px 16px;font-size:15px;}
+  .booking-card{padding:14px;gap:12px;border-radius:14px;}
+  .bc-stall{width:52px;height:52px;font-size:15px;}
+  .bc-name{font-size:15px;font-weight:700;}
+  .detail-panel{width:100vw;}
+  .panel-header{padding:16px;}
+  .panel-body{padding:16px;}
+  .form-input{padding:14px 14px;font-size:16px;min-height:48px;}
+  .btn-book{padding:16px;font-size:16px;min-height:52px;}
+  .btn-secondary{padding:14px;font-size:14px;min-height:48px;}
+  .admin-header{padding:20px 18px;margin-bottom:20px;border-radius:14px;}
+  .admin-header-title{font-size:22px;}
+  .admin-form-row.cap,.admin-form-row.exp{grid-template-columns:1fr!important;gap:10px;margin-bottom:18px;}
+  .admin-add-btn{padding:14px 18px;font-size:15px;min-height:50px;}
+  .admin-entry.cap,.admin-entry.exp{grid-template-columns:1fr 40px!important;}
+  .pl-kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+  .pl-kpi-value{font-size:22px!important;}
+  .success-modal{padding:14px;}
+  .success-card{padding:28px 22px;border-radius:20px;}
+  .toast{font-size:14px;padding:14px 20px;bottom:18px;max-width:92vw;border-radius:12px;}
+  .passcode-wall{padding:20px;}
+  .passcode-logo{font-size:32px;}
+  .passcode-key{padding:22px 10px;font-size:22px;border-radius:14px;min-height:60px;}
+}
+@media(max-width:380px){
+  .tab{padding:12px 8px;font-size:12px;}
+  .kpi-value{font-size:24px;}
+  .bc-stall{width:46px;height:46px;font-size:13px;}
+}
+</style>
+</head>
+<body>
+
+<!-- PASSCODE WALL -->
+<div class="passcode-wall" id="passcodeWall">
+  <div class="passcode-logo">Fest <span>بازار</span></div>
+  <div class="passcode-sub">Stall Management System</div>
+  <div class="passcode-box">
+    <div class="passcode-label">Enter Passcode</div>
+    <div class="passcode-dots">
+      <div class="passcode-dot" id="pd0"></div>
+      <div class="passcode-dot" id="pd1"></div>
+      <div class="passcode-dot" id="pd2"></div>
+      <div class="passcode-dot" id="pd3"></div>
+    </div>
+    <div class="passcode-grid">
+      <div class="passcode-key" onclick="pcPress('1')">1</div>
+      <div class="passcode-key" onclick="pcPress('2')">2</div>
+      <div class="passcode-key" onclick="pcPress('3')">3</div>
+      <div class="passcode-key" onclick="pcPress('4')">4</div>
+      <div class="passcode-key" onclick="pcPress('5')">5</div>
+      <div class="passcode-key" onclick="pcPress('6')">6</div>
+      <div class="passcode-key" onclick="pcPress('7')">7</div>
+      <div class="passcode-key" onclick="pcPress('8')">8</div>
+      <div class="passcode-key" onclick="pcPress('9')">9</div>
+      <div class="passcode-key" style="visibility:hidden"></div>
+      <div class="passcode-key" onclick="pcPress('0')">0</div>
+      <div class="passcode-key del" onclick="pcDelete()">⌫</div>
+    </div>
+    <div class="passcode-error" id="pcError"></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="header">
+  <div style="display:flex;align-items:center">
+    <div class="logo">Fest <span>بازار</span></div>
+    <div class="logo-version">v4.0-standalone</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <div class="sync-status">
+      <div class="sync-dot syncing" id="syncDot"></div>
+      <span id="syncLabel">Connecting...</span>
+    </div>
+    <button onclick="logoutUser()" style="background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.15);padding:7px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:12px;cursor:pointer;transition:all 0.2s">🔓 Logout</button>
+  </div>
+</header>
+
+<!-- TABS -->
+<nav class="tabs">
+  <div class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</div>
+  <div class="tab" onclick="switchTab('map')">🗺 Floor Map</div>
+  <div class="tab" onclick="switchTab('bookings')">📋 Bookings</div>
+  <div class="tab" onclick="switchTab('reminders')">💬 Reminders</div>
+  <div class="tab admin-only" id="tab-admin" onclick="switchTab('admin')" style="display:none">🔐 Admin</div>
+</nav>
+
+<!-- DASHBOARD VIEW -->
+<div class="view active" id="view-dashboard">
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-value" id="kpi-total">—</div><div class="kpi-label">Total Stalls</div></div>
+    <div class="kpi booked"><div class="kpi-value" id="kpi-booked">—</div><div class="kpi-label">Booked</div></div>
+    <div class="kpi available"><div class="kpi-value" id="kpi-available">—</div><div class="kpi-label">Available</div></div>
+    <div class="kpi cleared"><div class="kpi-value" id="kpi-cleared">—</div><div class="kpi-label">Cleared</div></div>
+    <div class="kpi partial"><div class="kpi-value" id="kpi-partial">—</div><div class="kpi-label">Partial</div></div>
+    <div class="kpi pending"><div class="kpi-value" id="kpi-pending">—</div><div class="kpi-label">Pending</div></div>
+  </div>
+  <div class="section-title">Financial Overview</div>
+  <div class="finance-row">
+    <div class="finance-card total"><div class="label">Total Expected</div><div class="amount" id="fin-total">—</div></div>
+    <div class="finance-card collected"><div class="label">Collected</div><div class="amount" id="fin-collected">—</div></div>
+    <div class="finance-card outstanding"><div class="label">Outstanding</div><div class="amount" id="fin-outstanding">—</div></div>
+  </div>
+  <div class="section-title">Bookings by Zone</div>
+  <div class="zone-grid">
+    <div class="zone-card food"><div><div class="zone-name">🍜 Food Stalls</div><div style="font-size:11px;color:var(--muted);margin-top:2px">F1–F15</div></div><div class="zone-count" id="zone-food">—</div></div>
+    <div class="zone-card grand"><div><div class="zone-name">🌳 Grand Tree</div><div style="font-size:11px;color:var(--muted);margin-top:2px">G1–G26</div></div><div class="zone-count" id="zone-grand">—</div></div>
+    <div class="zone-card city"><div><div class="zone-name">🏙 City Arena</div><div style="font-size:11px;color:var(--muted);margin-top:2px">C1–C35</div></div><div class="zone-count" id="zone-city">—</div></div>
+    <div class="zone-card passage"><div><div class="zone-name">🚶 Passage</div><div style="font-size:11px;color:var(--muted);margin-top:2px">P1–P6</div></div><div class="zone-count" id="zone-passage">—</div></div>
+  </div>
+</div>
+
+<!-- MAP VIEW -->
+<div class="view" id="view-map">
+  <div class="map-controls">
+    <div class="map-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#FFD580;border:1.5px solid #E8A800"></div>Food</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#7FD4A0;border:1.5px solid #2A8A50"></div>Grand Tree</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#90C8F0;border:1.5px solid #2060A8"></div>City Arena</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#F08080;border:1.5px solid #C02020"></div>Passage</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#C8C8C8;border:1.5px solid #888"></div>Booked</div>
+    </div>
+  </div>
+  <div class="map-container"><div class="floor-map" id="floorMap"></div></div>
+</div>
+
+<!-- BOOKINGS VIEW -->
+<div class="view" id="view-bookings">
+  <input class="search-bar" type="text" placeholder="🔍  Search vendor, brand, stall, phone..." oninput="renderBookingsList(this.value)">
+  <div id="bookings-list"></div>
+</div>
+
+<!-- REMINDERS VIEW -->
+<div class="view" id="view-reminders">
+  <div style="margin-bottom:16px;font-size:14px;color:var(--muted)">Vendors with outstanding payments. Tap any card to copy reminder message.</div>
+  <div id="reminders-list"></div>
+</div>
+
+<!-- ADMIN VIEW -->
+<div class="view" id="view-admin">
+  <div class="admin-header">
+    <div>
+      <div class="admin-header-title">🔐 Admin Portal</div>
+      <div class="admin-header-sub">Financials &amp; profit/loss tracking</div>
+    </div>
+    <button class="admin-exit-btn" onclick="logoutAdmin()">Exit Admin</button>
+  </div>
+
+  <div class="admin-section">
+    <div class="admin-section-title">📊 Profit &amp; Loss Statement</div>
+    <div id="pl-summary" class="pl-kpi-grid"></div>
+  </div>
+
+  <div class="admin-section">
+    <div class="admin-section-title">💼 Capital Invested</div>
+    <div class="admin-card">
+      <div class="admin-form-row cap">
+        <input class="form-input" id="cap-desc" placeholder="Description (e.g. Partner A initial)"/>
+        <input class="form-input num-input" id="cap-amt" type="text" inputmode="numeric" placeholder="Amount (PKR)" oninput="formatNumber(this)"/>
+        <button class="admin-add-btn teal" id="btn-addcap" onclick="addCapital()">+ Add</button>
+      </div>
+      <div id="capital-list"></div>
+    </div>
+  </div>
+
+  <div class="admin-section">
+    <div class="admin-section-title">💸 Expenses</div>
+    <div class="admin-card">
+      <div class="admin-form-row exp">
+        <select class="form-input" id="exp-cat">
+          <option>Venue Rent</option><option>Marketing/Ads</option>
+          <option>Staff/Volunteers</option><option>Decoration/Setup</option>
+          <option>Logistics</option><option>Utilities</option>
+          <option>Equipment</option><option>Miscellaneous</option>
+        </select>
+        <input class="form-input" id="exp-desc" placeholder="Description"/>
+        <input class="form-input num-input" id="exp-amt" type="text" inputmode="numeric" placeholder="Amount (PKR)" oninput="formatNumber(this)"/>
+        <button class="admin-add-btn rose" id="btn-addexp" onclick="addExpense()">+ Add</button>
+      </div>
+      <div id="expenses-list"></div>
+    </div>
+  </div>
+
+  <div class="admin-section">
+    <div class="admin-section-title">📦 Expenses by Category</div>
+    <div class="admin-card" id="category-breakdown"></div>
+  </div>
+
+  <div class="admin-section">
+    <div class="admin-section-title">📚 Past Events Archive</div>
+    <div class="admin-card">
+      <div style="display:grid;grid-template-columns:1fr 110px;gap:10px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <input class="form-input" id="archive-name" placeholder="Event name (e.g. Eid Bazaar 2026)"/>
+        <button class="admin-add-btn teal" id="btn-archive" onclick="archiveEvent()">📥 Archive</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.5">
+        💡 Saves a permanent snapshot of current bookings + financials.
+      </div>
+      <div id="archive-list"></div>
+    </div>
+  </div>
+
+  <div class="admin-section">
+    <div class="admin-section-title" style="color:var(--rose)">⚠️ Danger Zone</div>
+    <div class="admin-card" style="border:2px solid var(--rose);background:linear-gradient(180deg,#fff,#FDEAEA);">
+      <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--rose);margin-bottom:6px">Reset for Next Event</div>
+      <div style="font-size:13px;color:var(--ink);line-height:1.6;margin-bottom:14px">
+        Clears all current bookings, capital entries, and expenses. <strong>Past archives are kept permanently.</strong>
+      </div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:16px;padding:10px 12px;background:rgba(255,255,255,0.6);border-radius:8px;border:1px dashed var(--rose)">
+        <strong>This will:</strong><br>
+        ① Force archive the current event first<br>
+        ② Auto-download CSV backup<br>
+        ③ Clear all bookings, capital, and expenses
+      </div>
+      <button class="btn-book btn-red-solid" onclick="startResetFlow()" style="background:var(--rose)">🔄 Reset for Next Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- ARCHIVE DETAIL MODAL -->
+<div class="success-modal" id="archiveModal">
+  <div class="success-card" style="max-width:720px;padding:0;text-align:left;max-height:88vh;overflow-y:auto;width:100%">
+    <div style="background:linear-gradient(135deg,#1A1A2E,#0F3460);color:#fff;padding:24px 28px;border-radius:24px 24px 0 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:10">
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:900" id="archModalName">Event</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:4px" id="archModalDate"></div>
+      </div>
+      <button onclick="closeArchiveModal()" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);padding:8px 14px;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif">✕ Close</button>
+    </div>
+    <div style="padding:24px 28px" id="archModalBody"></div>
+  </div>
+</div>
+
+<!-- RESET CONFIRMATION MODAL -->
+<div class="success-modal" id="resetModal">
+  <div class="success-card" style="max-width:480px;text-align:left;padding:0;overflow:hidden;width:100%">
+    <div id="resetModalBody"></div>
+  </div>
+</div>
+
+<!-- STALL DETAIL PANEL -->
+<div class="overlay-bg" id="overlayBg" onclick="closePanel()"></div>
+<div class="detail-panel" id="detailPanel">
+  <div class="panel-header">
+    <div>
+      <div class="panel-stall-id" id="panel-stall-id"></div>
+      <div style="margin-top:4px"><span class="panel-zone-badge" id="panel-zone-badge"></span></div>
+    </div>
+    <button class="close-btn" onclick="closePanel()">✕</button>
+  </div>
+  <div class="panel-body" id="panel-body"></div>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="success-modal" id="successModal">
+  <div class="success-card">
+    <div class="success-icon" id="successIcon">✅</div>
+    <div class="success-title" id="successTitle">Done!</div>
+    <div class="success-stall" id="successStall"></div>
+    <div class="success-detail" id="successDetail"></div>
+    <button class="success-close" onclick="closeSuccess()">Done</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+var PASSCODE       = '1584';
+var ADMIN_PASSCODE = '9999';
+
+var STALL_DEFS = {
+  P1:{z:'passage',a:true},P2:{z:'passage',a:true},P3:{z:'passage',a:true},
+  P4:{z:'passage',a:true},P5:{z:'passage',a:true},P6:{z:'passage',a:true},
+  C1:{z:'city',a:true},C2:{z:'city',a:true},C3:{z:'city',a:true},
+  C4:{z:'city',a:true},C5:{z:'city',a:false},C6:{z:'city',a:true},
+  C7:{z:'city',a:true},C8:{z:'city',a:true},C9:{z:'city',a:true},
+  C10:{z:'city',a:true},C11:{z:'city',a:true},C12:{z:'city',a:true},
+  C13:{z:'city',a:true},C14:{z:'city',a:true},C15:{z:'city',a:true},
+  C16:{z:'city',a:true},C17:{z:'city',a:true},C18:{z:'city',a:true},
+  C19:{z:'city',a:true},C20:{z:'city',a:true},C21:{z:'city',a:true},
+  C22:{z:'city',a:true},C23:{z:'city',a:true},C24:{z:'city',a:true},
+  C25:{z:'city',a:true},C26:{z:'city',a:true},C27:{z:'city',a:true},
+  C28:{z:'city',a:true},C29:{z:'city',a:true},C30:{z:'city',a:true},
+  C31:{z:'city',a:true},C32:{z:'city',a:true},C33:{z:'city',a:true},
+  C34:{z:'city',a:true},C35:{z:'city',a:true},
+  G1:{z:'grand',a:true},G2:{z:'grand',a:true},G3:{z:'grand',a:true},
+  G4:{z:'grand',a:true},G5:{z:'grand',a:true},G6:{z:'grand',a:true},
+  G7:{z:'grand',a:true},G8:{z:'grand',a:true},G9:{z:'grand',a:true},
+  G10:{z:'grand',a:true},G11:{z:'grand',a:true},G12:{z:'grand',a:true},
+  G13:{z:'grand',a:true},G14:{z:'grand',a:true},G15:{z:'grand',a:true},
+  G16:{z:'grand',a:true},G17:{z:'grand',a:true},G18:{z:'grand',a:true},
+  G19:{z:'grand',a:true},G20:{z:'grand',a:true},G21:{z:'grand',a:true},
+  G22:{z:'grand',a:true},G23:{z:'grand',a:true},G24:{z:'grand',a:true},
+  G25:{z:'grand',a:true},G26:{z:'grand',a:true},
+  F1:{z:'food',a:true},F2:{z:'food',a:true},F3:{z:'food',a:true},
+  F4:{z:'food',a:true},F5:{z:'food',a:true},F6:{z:'food',a:true},
+  F7:{z:'food',a:true},F8:{z:'food',a:true},F9:{z:'food',a:true},
+  F10:{z:'food',a:true},F11:{z:'food',a:true},F12:{z:'food',a:true},
+  F13:{z:'food',a:true},F14:{z:'food',a:true},F15:{z:'food',a:true}
+};
+
+var ZONE_NAMES = {food:'Food Stalls',grand:'Grand Tree District',city:'City Arena',passage:'Passage Area'};
+var TOTAL_ACTIVE = Object.values(STALL_DEFS).filter(function(s){return s.a;}).length;
+
+var STALL_POSITIONS = {
+  F1:[8,490,38,38],F2:[8,448,38,38],F3:[8,406,38,38],F4:[8,364,38,38],
+  F5:[8,322,38,38],F6:[8,280,38,38],F7:[8,238,38,38],F8:[8,196,38,38],F9:[8,154,38,38],
+  F10:[64,10,44,30],F11:[116,10,44,30],F12:[222,10,44,30],F13:[274,10,44,30],
+  F14:[326,10,30,48],F15:[326,62,30,48],
+  G3:[56,508,36,28],G2:[100,508,36,28],G1:[144,508,36,28],
+  G4:[100,464,30,36],G5:[100,424,30,36],G6:[100,384,30,36],G7:[100,344,30,36],
+  G8:[100,304,30,36],G9:[100,264,30,36],G10:[100,224,30,36],
+  G11:[138,108,30,36],G12:[176,108,30,36],G13:[138,148,30,36],G14:[176,148,30,36],
+  G15:[176,188,30,36],G16:[138,228,30,36],G17:[138,308,30,36],G18:[138,348,30,36],G19:[138,388,30,36],
+  G26:[282,148,30,36],G25:[282,188,30,36],G24:[282,252,30,36],G23:[282,292,30,36],
+  G22:[282,332,30,36],G21:[282,392,30,36],G20:[282,444,30,36],
+  C35:[322,568,30,40],C34:[322,612,30,40],C33:[322,716,30,40],C32:[322,760,30,40],
+  C1:[130,896,30,36],C2:[166,856,30,50],C3:[166,910,30,36],
+  C4:[204,856,30,36],C5:[204,892,30,34],C6:[204,896,30,36],
+  C7:[204,936,30,36],C8:[204,976,30,36],
+  C22:[358,792,42,30],C21:[404,792,42,30],C20:[450,792,42,30],C19:[496,792,42,30],C18:[542,792,42,30],
+  C17:[586,840,42,30],C16:[586,874,42,30],C15:[586,908,42,30],C14:[586,942,42,30],
+  C23:[358,916,42,30],C24:[404,916,42,30],C25:[450,916,42,30],C26:[496,916,42,30],
+  C30:[358,950,42,30],C27:[404,950,42,30],C28:[450,950,42,30],C29:[496,950,42,30],
+  C9:[358,984,42,30],C10:[404,984,42,30],C11:[450,984,42,30],C12:[496,984,42,30],C13:[542,984,42,30],
+  C31:[204,1024,42,30],
+  P4:[130,1048,36,38],P3:[130,1090,36,38],P2:[130,1132,36,38],P1:[130,1174,36,38],
+  P6:[210,1132,36,38],P5:[210,1174,36,38]
+};
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+var bookings         = [];
+var bookingInProgress = false;
+var financialsState  = null;
+var financialsBusy   = false;
+var archivedEvents   = [];
+var lastSyncTime     = 0;
+var pendingSync      = false;
+var resetInProgress  = false;
+var resetHoldAnimFrame = null;
+var resetHoldStart   = 0;
+
+function getBooking(id){ return bookings.find(function(b){return b.stall===id;}); }
+function isBooked(id){ return !!getBooking(id); }
+function pkr(n){ return 'PKR '+Number(n||0).toLocaleString('en-PK'); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function parseNum(v){ var s=String(v||'').replace(/,/g,'').trim(); var n=parseFloat(s); return isNaN(n)?0:n; }
+function formatNumber(input){
+  var raw=input.value.replace(/[^\d]/g,'');
+  if(!raw){input.value='';return;}
+  var ce=input.selectionEnd===input.value.length;
+  input.value=Number(raw).toLocaleString('en-PK');
+  if(ce){try{input.setSelectionRange(input.value.length,input.value.length);}catch(e){}}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// API LAYER  (replaces google.script.run)
+// ═══════════════════════════════════════════════════════════════
+async function api(method, path, data){
+  try{
+    var opts={method:method,headers:{'Content-Type':'application/json'}};
+    if(data && method!=='GET') opts.body=JSON.stringify(data);
+    var res=await fetch(path,opts);
+    return await res.json();
+  }catch(e){
+    return {success:false,error:e.message};
+  }
+}
+
+async function apiForm(path, formData){
+  try{
+    var res=await fetch(path,{method:'POST',body:formData});
+    return await res.json();
+  }catch(e){
+    return {success:false,error:e.message};
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SYNC
+// ═══════════════════════════════════════════════════════════════
+async function syncFromSheet(showStatus){
+  if(pendingSync) return;
+  pendingSync=true;
+  if(showStatus) setSyncStatus('syncing');
+  var result=await api('GET','/api/bookings');
+  pendingSync=false;
+  if(result && Array.isArray(result.bookings)){
+    bookings=result.bookings;
+    lastSyncTime=Date.now();
+    setSyncStatus('synced');
+    refreshAll();
+  } else {
+    setSyncStatus('offline');
+  }
+}
+
+function setSyncStatus(state){
+  var dot=document.getElementById('syncDot');
+  var lbl=document.getElementById('syncLabel');
+  if(!dot) return;
+  dot.className='sync-dot '+state;
+  if(state==='synced') lbl.textContent='Synced';
+  else if(state==='syncing') lbl.textContent='Syncing...';
+  else lbl.textContent='Offline — retrying';
+}
+
+setInterval(function(){
+  if(lastSyncTime>0 && !pendingSync){
+    var sec=Math.floor((Date.now()-lastSyncTime)/1000);
+    var lbl=document.getElementById('syncLabel');
+    var dot=document.getElementById('syncDot');
+    if(lbl && dot && dot.classList.contains('synced')){
+      if(sec<10) lbl.textContent='Synced';
+      else if(sec<60) lbl.textContent='Synced '+sec+'s ago';
+      else lbl.textContent='Synced '+Math.floor(sec/60)+'m ago';
+    }
+  }
+},2000);
+
+// Background sync every 10s
+setInterval(function(){
+  if(sessionStorage.getItem('fb_auth')==='1') syncFromSheet(false);
+},10000);
+
+// ═══════════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════════
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  document.querySelectorAll('.tab').forEach(function(t){
+    var n=t.textContent.toLowerCase();
+    if((tab==='dashboard'&&n.includes('dashboard'))||
+       (tab==='map'&&n.includes('floor'))||
+       (tab==='bookings'&&n.includes('bookings'))||
+       (tab==='reminders'&&n.includes('reminders'))||
+       (tab==='admin'&&n.includes('admin'))) t.classList.add('active');
+  });
+  document.getElementById('view-'+tab).classList.add('active');
+  if(tab==='map')       renderMap();
+  if(tab==='bookings')  renderBookingsList();
+  if(tab==='reminders') renderReminders();
+  if(tab==='admin')     loadFinancials();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+function refreshDashboard(){
+  var booked    =bookings.length;
+  var cleared   =bookings.filter(function(b){return b.paymentStatus==='cleared';}).length;
+  var partial   =bookings.filter(function(b){return b.paymentStatus==='partial';}).length;
+  var pending   =bookings.filter(function(b){return b.paymentStatus==='pending';}).length;
+  var totalAmt  =bookings.reduce(function(s,b){return s+(b.total||0);},0);
+  var collected =bookings.reduce(function(s,b){return s+(b.paid||0);},0);
+  var outstanding=bookings.reduce(function(s,b){return s+(b.due||0);},0);
+
+  document.getElementById('kpi-total').textContent     =TOTAL_ACTIVE;
+  document.getElementById('kpi-booked').textContent    =booked;
+  document.getElementById('kpi-available').textContent =TOTAL_ACTIVE-booked;
+  document.getElementById('kpi-cleared').textContent   =cleared;
+  document.getElementById('kpi-partial').textContent   =partial;
+  document.getElementById('kpi-pending').textContent   =pending;
+  document.getElementById('fin-total').textContent     =pkr(totalAmt);
+  document.getElementById('fin-collected').textContent =pkr(collected);
+  document.getElementById('fin-outstanding').textContent=pkr(outstanding);
+
+  ['food','grand','city','passage'].forEach(function(z){
+    document.getElementById('zone-'+z).textContent=
+      bookings.filter(function(b){return STALL_DEFS[b.stall]&&STALL_DEFS[b.stall].z===z;}).length;
+  });
+}
+
+function refreshAll(){
+  refreshDashboard();
+  renderBookingsList(document.querySelector('.search-bar')?document.querySelector('.search-bar').value:'');
+  renderReminders();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FLOOR MAP
+// ═══════════════════════════════════════════════════════════════
+function renderMap(){
+  var map=document.getElementById('floorMap');
+  map.innerHTML='';
+  var labels=[
+    {text:'GATE',l:166,t:10,bg:'#1A1A2E'},
+    {text:'TREE',l:318,t:80,bg:'#2A5A30',rot:true},
+    {text:'STAIRS',l:188,t:528,bg:'#555'},
+    {text:'STAIRS',l:128,t:622,bg:'#555'},
+    {text:'STAIRS',l:128,t:802,bg:'#555'},
+    {text:'ENTRANCE',l:100,t:1220,bg:'#1A1A2E'},
+    {text:'STAGE',l:390,t:1090,bg:'#1A1A2E'},
+    {text:'SHOPS',l:390,t:640,bg:'#444'},
+    {text:'SHOPS',l:390,t:740,bg:'#444'}
+  ];
+  labels.forEach(function(lb){
+    var el=document.createElement('div');
+    el.className='map-label';
+    el.textContent=lb.text;
+    el.style.cssText='left:'+lb.l+'px;top:'+lb.t+'px;background:'+lb.bg+';';
+    if(lb.rot) el.style.writingMode='vertical-rl';
+    map.appendChild(el);
+  });
+  Object.keys(STALL_POSITIONS).forEach(function(id){
+    var pos=STALL_POSITIONS[id];
+    var def=STALL_DEFS[id];
+    if(!def) return;
+    var el=document.createElement('div');
+    var cls='stall '+def.z;
+    if(!def.a||isBooked(id)) cls+=' booked';
+    el.className=cls;
+    el.style.cssText='left:'+pos[0]+'px;top:'+pos[1]+'px;width:'+pos[2]+'px;height:'+pos[3]+'px;';
+    el.textContent=id;
+    el.onclick=function(){openStallPanel(id);};
+    map.appendChild(el);
+  });
+  scaleMapToFit();
+}
+
+function scaleMapToFit(){
+  var map=document.getElementById('floorMap');
+  var container=map.parentElement;
+  if(!map||!container) return;
+  var cw=container.clientWidth-16;
+  var mw=660;
+  if(cw<mw){
+    var s=cw/mw;
+    map.style.transform='scale('+s+')';
+    map.style.height=(1260*s)+'px';
+    map.parentElement.style.minHeight=(1260*s+16)+'px';
+  } else {
+    map.style.transform='';
+    map.style.height='';
+    map.parentElement.style.minHeight='';
+  }
+}
+window.addEventListener('resize',function(){
+  if(document.getElementById('view-map').classList.contains('active')) scaleMapToFit();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// STALL PANEL
+// ═══════════════════════════════════════════════════════════════
+function openStallPanel(stallId){
+  var def=STALL_DEFS[stallId];
+  var booking=getBooking(stallId);
+  var body=document.getElementById('panel-body');
+
+  document.getElementById('panel-stall-id').textContent=stallId;
+  var badge=document.getElementById('panel-zone-badge');
+  badge.textContent=ZONE_NAMES[def.z];
+  badge.className='panel-zone-badge badge-'+def.z;
+
+  document.querySelectorAll('.stall').forEach(function(s){
+    s.classList.toggle('selected',s.textContent.trim()===stallId);
+  });
+
+  if(!def.a){
+    body.innerHTML='<div class="status-banner booked">🚫 This stall is inactive</div>';
+  } else if(booking){
+    var due=booking.due||0;
+    var pct=booking.total>0?Math.round((booking.paid/booking.total)*100):0;
+    var sLabel={cleared:'✅ Fully Paid',partial:'⚠️ Partial Payment',pending:'❌ Payment Pending'}[booking.paymentStatus]||'—';
+
+    var logoSection='';
+    if(booking.logoUrl){
+      logoSection=
+        '<div style="margin-bottom:20px">'+
+        '<div class="detail-label" style="margin-bottom:8px">Vendor Logo</div>'+
+        '<div style="background:var(--cream);border-radius:12px;padding:14px;text-align:center">'+
+        '<img src="'+esc(booking.logoUrl)+'" alt="Logo" style="max-width:100%;max-height:180px;border-radius:8px;background:#fff;padding:8px;box-shadow:0 2px 8px var(--shadow)" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'"/>'+
+        '<div style="display:none;padding:30px;color:var(--muted);font-size:13px">📷 Logo could not load</div>'+
+        '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'+
+        '<a href="'+esc(booking.logoUrl)+'" target="_blank" style="background:var(--ink);color:#fff;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none">🔍 Full Size</a>'+
+        '<button onclick="triggerLogoReplace(\''+stallId+'\')" style="background:var(--sky);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif">🔄 Replace</button>'+
+        '<button onclick="confirmRemoveLogo(\''+stallId+'\')" style="background:var(--rose);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif">🗑 Remove</button>'+
+        '</div></div></div>';
+    } else {
+      logoSection=
+        '<div style="margin-bottom:20px">'+
+        '<div class="detail-label" style="margin-bottom:8px">Vendor Logo</div>'+
+        '<div style="background:var(--cream);border-radius:12px;padding:18px;text-align:center;border:2px dashed var(--border)">'+
+        '<div style="font-size:32px;margin-bottom:8px;opacity:0.4">📷</div>'+
+        '<div style="font-size:13px;color:var(--muted);margin-bottom:12px">No logo uploaded yet</div>'+
+        '<button onclick="triggerLogoReplace(\''+stallId+'\')" style="background:var(--saffron);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif">📎 Add Logo</button>'+
+        '</div></div>';
+    }
+
+    body.innerHTML=
+      '<div class="status-banner booked">🔒 Stall is booked</div>'+
+      '<div class="detail-grid">'+
+        '<div class="detail-row"><span class="detail-label">Vendor</span><span class="detail-value">'+esc(booking.vendor)+'</span></div>'+
+        '<div class="detail-row"><span class="detail-label">Brand</span><span class="detail-value">'+esc(booking.brand)+'</span></div>'+
+        '<div class="detail-row"><span class="detail-label">Phone</span><span class="detail-value">'+esc(booking.phone)+'</span></div>'+
+        '<div class="detail-row"><span class="detail-label">Items</span><span class="detail-value">'+(booking.items?esc(booking.items):'—')+'</span></div>'+
+        '<div class="detail-row"><span class="detail-label">Date</span><span class="detail-value">'+(booking.date||'—')+'</span></div>'+
+      '</div>'+
+      logoSection+
+      '<div class="payment-bar">'+
+        '<div class="pb-label">'+sLabel+'</div>'+
+        '<div class="progress-track"><div class="progress-fill" style="width:'+pct+'%"></div></div>'+
+        '<div class="pb-amounts">'+
+          '<span style="color:var(--cleared)">Paid: '+pkr(booking.paid)+'</span>'+
+          '<span style="color:var(--pending)">Due: '+pkr(due)+'</span>'+
+        '</div>'+
+        '<div style="font-size:12px;color:var(--muted);margin-top:6px">Total: '+pkr(booking.total)+'</div>'+
+      '</div>'+
+      (due>0?'<button class="btn-secondary btn-green" id="btn-clearpay" onclick="clearPayment(\''+stallId+'\')">✔ Mark Fully Paid — '+pkr(due)+' remaining</button>':'')+
+      '<button class="btn-secondary btn-teal" onclick="downloadInvoice(\''+stallId+'\')">🧾 Download Invoice</button>'+
+      '<button class="btn-secondary btn-red-outline" onclick="confirmDelete(\''+stallId+'\')">🗑 Remove Booking</button>';
+  } else {
+    body.innerHTML=
+      '<div class="status-banner available">✅ Available — ready to book</div>'+
+      '<div class="booking-form">'+
+        '<div class="form-group"><label class="form-label">Vendor Name *</label><input class="form-input" id="f-vendor" placeholder="e.g. Emaan Shahzad"/></div>'+
+        '<div class="form-group"><label class="form-label">Brand Name *</label><input class="form-input" id="f-brand" placeholder="e.g. Dumpling on Go"/></div>'+
+        '<div class="form-group"><label class="form-label">Phone Number *</label><input class="form-input" id="f-phone" placeholder="03XXXXXXXXX" type="tel"/></div>'+
+        '<div class="form-group"><label class="form-label">Items / Category</label><input class="form-input" id="f-items" placeholder="e.g. Dumplings and Hotpot"/></div>'+
+        '<div class="form-row">'+
+          '<div class="form-group"><label class="form-label">Total Amount (PKR) *</label><input class="form-input num-input" id="f-total" placeholder="10,000" type="text" inputmode="numeric" oninput="formatNumber(this);calcDue()"/></div>'+
+          '<div class="form-group"><label class="form-label">Amount Paid (PKR) *</label><input class="form-input num-input" id="f-paid" placeholder="5,000" type="text" inputmode="numeric" oninput="formatNumber(this);calcDue()"/></div>'+
+        '</div>'+
+        '<div class="form-group"><label class="form-label">Amount Due (auto)</label><div class="due-display" id="f-due">PKR 0</div></div>'+
+        '<div class="form-group"><label class="form-label">Vendor Logo (optional)</label>'+
+          '<div style="display:flex;align-items:center;gap:10px">'+
+            '<input type="file" id="f-logo" accept="image/*" style="flex:1;font-size:13px"/>'+
+            '<button type="button" onclick="document.getElementById(\'f-logo\').value=\'\'" style="background:none;border:1px solid var(--border);padding:8px 10px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--muted)">Clear</button>'+
+          '</div>'+
+          '<div style="font-size:11px;color:var(--muted);margin-top:6px">📎 You can also upload after booking.</div>'+
+        '</div>'+
+        '<button class="btn-book" id="btn-submit" onclick="submitBooking(\''+stallId+'\')">📌 Confirm Booking for '+stallId+'</button>'+
+      '</div>';
+  }
+  document.getElementById('detailPanel').classList.add('open');
+  document.getElementById('overlayBg').classList.add('open');
+}
+
+function calcDue(){
+  var t=parseNum(document.getElementById('f-total').value);
+  var p=parseNum(document.getElementById('f-paid').value);
+  document.getElementById('f-due').textContent=pkr(Math.max(0,t-p));
+}
+
+function closePanel(){
+  document.getElementById('detailPanel').classList.remove('open');
+  document.getElementById('overlayBg').classList.remove('open');
+  document.querySelectorAll('.stall').forEach(function(s){s.classList.remove('selected');});
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUBMIT BOOKING
+// ═══════════════════════════════════════════════════════════════
+async function submitBooking(stallId){
+  if(bookingInProgress) return;
+  var vendor=document.getElementById('f-vendor').value.trim();
+  var brand =document.getElementById('f-brand').value.trim();
+  var phone =document.getElementById('f-phone').value.trim();
+  var items =document.getElementById('f-items').value.trim();
+  var total =parseNum(document.getElementById('f-total').value);
+  var paid  =parseNum(document.getElementById('f-paid').value);
+
+  if(!vendor||!brand||!phone||!total){showToast('Please fill all required fields','error');return;}
+  var cleanPhone=phone.replace(/\D/g,'');
+  if(cleanPhone.length!==11){showToast('❌ Phone must be 11 digits','error');document.getElementById('f-phone').classList.add('error');return;}
+  if(paid>total){showToast('❌ Paid cannot exceed total','error');return;}
+  if(isBooked(stallId)){showToast('🚨 Already booked','error');return;}
+
+  bookingInProgress=true;
+  var btn=document.getElementById('btn-submit');
+  btn.disabled=true; btn.textContent='⏳ Saving...';
+
+  var result=await api('POST','/api/bookings',{
+    stall:stallId, zone:ZONE_NAMES[STALL_DEFS[stallId].z],
+    vendor:vendor, brand:brand, phone:cleanPhone, items:items,
+    total:total, paid:paid
+  });
+  bookingInProgress=false;
+
+  if(!result||!result.success){
+    btn.disabled=false; btn.textContent='📌 Confirm Booking for '+stallId;
+    showToast('❌ '+(result&&result.error?result.error:'Could not save. Try again.'),'error');
+    return;
+  }
+
+  if(Array.isArray(result.bookings)){bookings=result.bookings;lastSyncTime=Date.now();setSyncStatus('synced');}
+
+  var logoFile=document.getElementById('f-logo').files[0];
+  closePanel(); refreshAll(); renderMap();
+
+  var due=total-paid;
+  showSuccess({icon:'✅',title:'Booking Confirmed!',stall:stallId,
+    detail:'<strong>'+esc(brand)+'</strong> ('+esc(vendor)+')<br>Total: '+pkr(total)+' • '+(due>0?pkr(due)+' outstanding':'Fully Paid')});
+
+  if(logoFile){
+    showToast('📤 Uploading logo...','');
+    uploadLogoFile(stallId,logoFile).then(function(ok){
+      if(ok) showToast('✅ Logo uploaded for '+stallId,'success');
+      else showToast('⚠️ Booking saved but logo failed — try from stall panel','error');
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CLEAR PAYMENT
+// ═══════════════════════════════════════════════════════════════
+async function clearPayment(stallId){
+  var btn=document.getElementById('btn-clearpay');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Updating...';}
+  var result=await api('POST','/api/bookings/'+encodeURIComponent(stallId)+'/clear-payment');
+  if(!result||!result.success){
+    if(btn){btn.disabled=false;btn.textContent='✔ Mark Fully Paid';}
+    showToast('❌ Update failed. Try again.','error'); return;
+  }
+  if(Array.isArray(result.bookings)){bookings=result.bookings;lastSyncTime=Date.now();setSyncStatus('synced');}
+  closePanel(); refreshAll(); renderMap();
+  showSuccess({icon:'💰',title:'Payment Cleared!',stall:stallId,detail:'Marked as fully paid.'});
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DELETE BOOKING
+// ═══════════════════════════════════════════════════════════════
+function confirmDelete(stallId){
+  var b=getBooking(stallId);
+  if(!b) return;
+  document.getElementById('panel-body').innerHTML=
+    '<div class="status-banner booked" style="margin-bottom:20px">⚠️ Remove booking for <strong>'+stallId+'</strong>?</div>'+
+    '<div style="font-size:14px;color:var(--muted);margin-bottom:24px;line-height:1.6">This will free up <strong>'+stallId+'</strong> and remove <strong>'+esc(b.brand)+'</strong> ('+esc(b.vendor)+') from all records.</div>'+
+    '<button class="btn-book btn-red-solid" id="btn-confirmdelete" onclick="deleteBooking(\''+stallId+'\')">🗑 Yes, Remove Booking</button>'+
+    '<button class="btn-secondary btn-grey" style="margin-top:8px" onclick="openStallPanel(\''+stallId+'\')">↩ Cancel</button>';
+}
+
+async function deleteBooking(stallId){
+  var btn=document.getElementById('btn-confirmdelete');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Removing...';}
+  var result=await api('DELETE','/api/bookings/'+encodeURIComponent(stallId));
+  if(!result||!result.success){
+    if(btn){btn.disabled=false;btn.textContent='🗑 Yes, Remove Booking';}
+    showToast('❌ Could not remove. Try again.','error'); return;
+  }
+  if(Array.isArray(result.bookings)){bookings=result.bookings;lastSyncTime=Date.now();setSyncStatus('synced');}
+  closePanel(); refreshAll(); renderMap();
+  showSuccess({icon:'🗑',title:'Booking Removed',stall:stallId,detail:'Stall '+stallId+' is now available again.'});
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUCCESS MODAL
+// ═══════════════════════════════════════════════════════════════
+function showSuccess(opts){
+  document.getElementById('successIcon').textContent  =opts.icon||'✅';
+  document.getElementById('successTitle').textContent =opts.title||'Done!';
+  document.getElementById('successStall').textContent =opts.stall||'';
+  document.getElementById('successDetail').innerHTML  =opts.detail||'';
+  document.getElementById('successModal').classList.add('show');
+}
+function closeSuccess(){document.getElementById('successModal').classList.remove('show');}
+
+// ═══════════════════════════════════════════════════════════════
+// FINANCIALS
+// ═══════════════════════════════════════════════════════════════
+async function loadFinancials(){
+  var result=await api('GET','/api/financials');
+  if(result&&result.summary){
+    financialsState=result;
+    renderFinancials();
+  } else {
+    document.getElementById('pl-summary').innerHTML=
+      '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--muted)">Could not load financial data.</div>';
+  }
+  var archName=document.getElementById('archive-name');
+  if(archName&&!archName.value){
+    archName.value='Event - '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  }
+  loadArchivedEvents();
+}
+
+function renderFinancials(){
+  if(!financialsState) return;
+  var s=financialsState.summary;
+  var pc=s.netProfit>=0?'var(--cleared)':'var(--pending)';
+  var pl=s.netProfit>=0?'Net Profit':'Net Loss';
+
+  document.getElementById('pl-summary').innerHTML=
+    '<div class="pl-kpi"><div class="pl-kpi-value" style="color:var(--ink)">'+pkr(s.totalCapital)+'</div><div class="pl-kpi-label">Capital</div></div>'+
+    '<div class="pl-kpi"><div class="pl-kpi-value" style="color:var(--cleared)">'+pkr(s.revenueCollected)+'</div><div class="pl-kpi-label">Revenue Collected</div></div>'+
+    '<div class="pl-kpi"><div class="pl-kpi-value" style="color:var(--partial)">'+pkr(s.revenueOutstanding)+'</div><div class="pl-kpi-label">Outstanding</div></div>'+
+    '<div class="pl-kpi"><div class="pl-kpi-value" style="color:var(--pending)">'+pkr(s.totalExpenses)+'</div><div class="pl-kpi-label">Total Expenses</div></div>'+
+    '<div class="pl-kpi"><div class="pl-kpi-value" style="color:'+pc+'">'+pkr(Math.abs(s.netProfit))+'</div><div class="pl-kpi-label">'+pl+'</div></div>'+
+    '<div class="pl-kpi"><div class="pl-kpi-value" style="color:'+pc+'">'+s.profitMargin.toFixed(1)+'%</div><div class="pl-kpi-label">Profit Margin</div></div>'+
+    '<div class="pl-kpi"><div class="pl-kpi-value" style="color:'+pc+'">'+s.roi.toFixed(1)+'%</div><div class="pl-kpi-label">ROI</div></div>'+
+    '<div class="pl-kpi"><div class="pl-kpi-value" style="color:'+pc+';font-size:16px">'+(s.breakeven?'✅ Profit':'⚠️ Loss')+'</div><div class="pl-kpi-label">Status</div></div>';
+
+  var capList=document.getElementById('capital-list');
+  capList.innerHTML=financialsState.capital.length===0
+    ?'<div class="admin-empty">No capital entries yet</div>'
+    :financialsState.capital.map(function(c){
+      return '<div class="admin-entry cap">'+
+        '<div class="admin-entry-date">'+c.date+'</div>'+
+        '<div class="admin-entry-desc">'+esc(c.description)+'</div>'+
+        '<div class="admin-entry-amt teal">'+pkr(c.amount)+'</div>'+
+        '<button class="admin-entry-del" onclick="deleteCapital(\''+c.id+'\')">🗑</button>'+
+        '</div>';
+    }).join('');
+
+  var expList=document.getElementById('expenses-list');
+  expList.innerHTML=financialsState.expenses.length===0
+    ?'<div class="admin-empty">No expenses yet</div>'
+    :financialsState.expenses.map(function(e){
+      return '<div class="admin-entry exp">'+
+        '<div class="admin-entry-date">'+e.date+'</div>'+
+        '<div class="admin-entry-cat">'+esc(e.category)+'</div>'+
+        '<div class="admin-entry-desc">'+esc(e.description)+'</div>'+
+        '<div class="admin-entry-amt rose">'+pkr(e.amount)+'</div>'+
+        '<button class="admin-entry-del" onclick="deleteExpense(\''+e.id+'\')">🗑</button>'+
+        '</div>';
+    }).join('');
+
+  var brk=financialsState.breakdown;
+  var tot=Object.values(brk).reduce(function(a,b){return a+b;},0);
+  var brkEl=document.getElementById('category-breakdown');
+  if(tot===0){
+    brkEl.innerHTML='<div class="admin-empty">Add expenses to see breakdown</div>';
+  } else {
+    brkEl.innerHTML=Object.keys(brk).filter(function(k){return brk[k]>0;}).map(function(k){
+      var pct=(brk[k]/tot*100).toFixed(1);
+      return '<div class="breakdown-row">'+
+        '<div class="breakdown-label"><span class="name">'+esc(k)+'</span><span class="val">'+pkr(brk[k])+' · '+pct+'%</span></div>'+
+        '<div class="breakdown-bar"><div class="breakdown-fill" style="width:'+pct+'%"></div></div>'+
+        '</div>';
+    }).join('');
+  }
+}
+
+async function addCapital(){
+  if(financialsBusy) return;
+  var desc=document.getElementById('cap-desc').value.trim();
+  var amt=parseNum(document.getElementById('cap-amt').value);
+  if(!desc||amt<=0){showToast('❌ Enter description and amount','error');return;}
+  financialsBusy=true;
+  var btn=document.getElementById('btn-addcap');
+  btn.disabled=true; btn.textContent='...';
+  var result=await api('POST','/api/capital',{description:desc,amount:amt});
+  financialsBusy=false; btn.disabled=false; btn.textContent='+ Add';
+  if(result&&result.success){
+    document.getElementById('cap-desc').value='';
+    document.getElementById('cap-amt').value='';
+    financialsState=result.financials; renderFinancials();
+    showToast('✅ Capital added','success');
+  } else { showToast('❌ Could not save','error'); }
+}
+
+async function deleteCapital(id){
+  var result=await api('DELETE','/api/capital/'+encodeURIComponent(id));
+  if(result&&result.success){financialsState=result.financials;renderFinancials();showToast('🗑 Removed','');}
+  else showToast('❌ Could not delete','error');
+}
+
+async function addExpense(){
+  if(financialsBusy) return;
+  var cat=document.getElementById('exp-cat').value;
+  var desc=document.getElementById('exp-desc').value.trim();
+  var amt=parseNum(document.getElementById('exp-amt').value);
+  if(!desc||amt<=0){showToast('❌ Enter description and amount','error');return;}
+  financialsBusy=true;
+  var btn=document.getElementById('btn-addexp');
+  btn.disabled=true; btn.textContent='...';
+  var result=await api('POST','/api/expenses',{category:cat,description:desc,amount:amt});
+  financialsBusy=false; btn.disabled=false; btn.textContent='+ Add';
+  if(result&&result.success){
+    document.getElementById('exp-desc').value='';
+    document.getElementById('exp-amt').value='';
+    financialsState=result.financials; renderFinancials();
+    showToast('✅ Expense added','success');
+  } else { showToast('❌ Could not save','error'); }
+}
+
+async function deleteExpense(id){
+  var result=await api('DELETE','/api/expenses/'+encodeURIComponent(id));
+  if(result&&result.success){financialsState=result.financials;renderFinancials();showToast('🗑 Removed','');}
+  else showToast('❌ Could not delete','error');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ARCHIVE
+// ═══════════════════════════════════════════════════════════════
+async function loadArchivedEvents(){
+  var result=await api('GET','/api/archive');
+  if(result&&Array.isArray(result.events)){archivedEvents=result.events;renderArchiveList();}
+}
+
+function renderArchiveList(){
+  var list=document.getElementById('archive-list');
+  if(!list) return;
+  if(!archivedEvents.length){list.innerHTML='<div class="admin-empty">No archived events yet</div>';return;}
+  list.innerHTML=archivedEvents.map(function(e){
+    var pc=e.netProfit>=0?'var(--cleared)':'var(--pending)';
+    var pl=e.netProfit>=0?'profit':'loss';
+    return '<div class="admin-entry" style="grid-template-columns:1fr 120px 32px 32px;cursor:pointer" onclick="viewArchivedEvent(\''+e.id+'\')">'+
+      '<div><div style="font-weight:700;color:var(--ink);font-size:15px">'+esc(e.name)+'</div>'+
+      '<div style="font-size:11px;color:var(--muted);margin-top:3px">'+e.date+' · '+e.bookingsCount+' bookings · '+pkr(e.revenue)+' revenue</div></div>'+
+      '<div style="text-align:right"><div class="admin-entry-amt" style="color:'+pc+'">'+pkr(Math.abs(e.netProfit))+'</div>'+
+      '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">'+pl+'</div></div>'+
+      '<button class="admin-entry-del" onclick="event.stopPropagation();viewArchivedEvent(\''+e.id+'\')" title="View">👁</button>'+
+      '<button class="admin-entry-del" onclick="event.stopPropagation();confirmDeleteArchive(\''+e.id+'\',\''+esc(e.name).replace(/\'/g,"\\'")+'\')">🗑</button>'+
+      '</div>';
+  }).join('');
+}
+
+async function archiveEvent(){
+  var nameInput=document.getElementById('archive-name');
+  var name=nameInput.value.trim()||('Event - '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}));
+  if(!confirm('Archive this event as "'+name+'"?')) return;
+  var btn=document.getElementById('btn-archive');
+  btn.disabled=true; btn.textContent='...';
+  var result=await api('POST','/api/archive',{name:name});
+  btn.disabled=false; btn.textContent='📥 Archive';
+  if(result&&result.success){
+    nameInput.value=''; archivedEvents=result.events; renderArchiveList();
+    showSuccess({icon:'📦',title:'Event Archived!',stall:name,detail:'Permanent snapshot saved. View in Past Events.'});
+  } else { showToast('❌ '+(result&&result.error?result.error:'Archive failed'),'error'); }
+}
+
+async function viewArchivedEvent(eventId){
+  var result=await api('GET','/api/archive/'+encodeURIComponent(eventId));
+  if(!result||!result.success){showToast('❌ Could not load event','error');return;}
+  var e=result.event;
+  document.getElementById('archModalName').textContent=e.name;
+  document.getElementById('archModalDate').textContent='Archived '+e.date;
+  var fin=e.financials||{summary:{},capital:[],expenses:[]};
+  var s=fin.summary||{};
+  var pc=(s.netProfit||0)>=0?'var(--cleared)':'var(--pending)';
+  var body=
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px">'+
+    '<div class="pl-kpi"><div class="pl-kpi-value" style="color:var(--ink)">'+pkr(s.totalCapital||0)+'</div><div class="pl-kpi-label">Capital</div></div>'+
+    '<div class="pl-kpi"><div class="pl-kpi-value" style="color:var(--cleared)">'+pkr(s.revenueCollected||0)+'</div><div class="pl-kpi-label">Revenue</div></div>'+
+    '<div class="pl-kpi"><div class="pl-kpi-value" style="color:var(--pending)">'+pkr(s.totalExpenses||0)+'</div><div class="pl-kpi-label">Expenses</div></div>'+
+    '<div class="pl-kpi"><div class="pl-kpi-value" style="color:'+pc+'">'+pkr(Math.abs(s.netProfit||0))+'</div><div class="pl-kpi-label">'+((s.netProfit||0)>=0?'Profit':'Loss')+'</div></div>'+
+    '</div>';
+  body+='<div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;margin-bottom:10px">📋 Bookings ('+e.bookings.length+')</div>';
+  if(!e.bookings.length){ body+='<div class="admin-empty">No bookings</div>'; }
+  else {
+    body+='<div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;margin-bottom:24px">'+
+      e.bookings.map(function(b){
+        var scls={cleared:'cleared',partial:'partial',pending:'pending'}[b.paymentStatus]||'pending';
+        var slbl={cleared:'Cleared',partial:'Partial',pending:'Pending'}[b.paymentStatus]||'—';
+        return '<div style="display:grid;grid-template-columns:50px 1fr 100px 90px;gap:10px;padding:10px 14px;border-bottom:1px solid var(--cream);align-items:center;font-size:13px">'+
+          '<div style="font-weight:800;font-family:Inter,sans-serif">'+b.stall+'</div>'+
+          '<div><div style="font-weight:600">'+esc(b.vendor)+'</div><div style="font-size:11px;color:var(--muted)">'+esc(b.brand)+'</div></div>'+
+          '<div style="text-align:right;font-weight:700;font-family:Inter,sans-serif">'+pkr(b.total)+'</div>'+
+          '<div class="bc-status '+scls+'" style="text-align:center">'+slbl+'</div></div>';
+      }).join('')+'</div>';
+  }
+  if(fin.capital&&fin.capital.length>0){
+    body+='<div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;margin-bottom:10px">💼 Capital</div>'+
+      '<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:24px">'+
+      fin.capital.map(function(c){
+        return '<div style="display:grid;grid-template-columns:90px 1fr 130px;gap:10px;padding:10px 14px;border-bottom:1px solid var(--cream);align-items:center;font-size:13px">'+
+          '<div style="color:var(--muted);font-size:11px">'+c.date+'</div>'+
+          '<div>'+esc(c.description)+'</div>'+
+          '<div style="text-align:right;font-weight:700;font-family:Inter,sans-serif;color:var(--teal)">'+pkr(c.amount)+'</div></div>';
+      }).join('')+'</div>';
+  }
+  if(fin.expenses&&fin.expenses.length>0){
+    body+='<div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;margin-bottom:10px">💸 Expenses</div>'+
+      '<div style="border:1px solid var(--border);border-radius:10px">'+
+      fin.expenses.map(function(ex){
+        return '<div style="display:grid;grid-template-columns:90px 110px 1fr 130px;gap:10px;padding:10px 14px;border-bottom:1px solid var(--cream);align-items:center;font-size:13px">'+
+          '<div style="color:var(--muted);font-size:11px">'+ex.date+'</div>'+
+          '<div class="admin-entry-cat">'+esc(ex.category)+'</div>'+
+          '<div>'+esc(ex.description)+'</div>'+
+          '<div style="text-align:right;font-weight:700;font-family:Inter,sans-serif;color:var(--rose)">'+pkr(ex.amount)+'</div></div>';
+      }).join('')+'</div>';
+  }
+  document.getElementById('archModalBody').innerHTML=body;
+  document.getElementById('archiveModal').classList.add('show');
+}
+
+function closeArchiveModal(){document.getElementById('archiveModal').classList.remove('show');}
+
+function confirmDeleteArchive(eventId,eventName){
+  if(!confirm('⚠️ Permanently delete archive:\n\n"'+eventName+'"\n\nThis cannot be undone.')) return;
+  deleteArchive(eventId);
+}
+
+async function deleteArchive(eventId){
+  var result=await api('DELETE','/api/archive/'+encodeURIComponent(eventId));
+  if(result&&result.success){archivedEvents=result.events;renderArchiveList();showToast('🗑 Archive deleted','');}
+  else showToast('❌ Could not delete','error');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RESET FLOW
+// ═══════════════════════════════════════════════════════════════
+function startResetFlow(){
+  if(!bookings.length&&(!financialsState||(financialsState.capital.length===0&&financialsState.expenses.length===0))){
+    showToast('Nothing to reset','error'); return;
+  }
+  showResetStep1();
+}
+
+function showResetStep1(){
+  var hasRecent=archivedEvents.length>0&&(Date.now()-archivedEvents[0].dateRaw)<4*60*60*1000;
+  var archStatus=hasRecent
+    ?'<div style="background:var(--cleared-bg);color:var(--cleared);padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:16px">✅ Recent archive found: "'+esc(archivedEvents[0].name)+'"</div>'
+    :'<div style="background:var(--partial-bg);color:var(--partial);padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:16px">⚠️ No recent archive. Please archive first.</div>';
+  var bc=bookings.length, cc=financialsState?financialsState.capital.length:0, ec=financialsState?financialsState.expenses.length:0;
+  document.getElementById('resetModalBody').innerHTML=
+    '<div style="background:var(--rose);color:#fff;padding:20px 22px;border-radius:0">'+
+      '<div style="font-family:Playfair Display,serif;font-size:20px;font-weight:900">⚠️ Reset Event Data</div>'+
+      '<div style="font-size:12px;opacity:0.85;margin-top:3px">Step 1 of 3 — Archive Check</div>'+
+    '</div>'+
+    '<div style="padding:22px">'+archStatus+
+      '<div style="font-size:13px;color:var(--ink);line-height:1.6;margin-bottom:18px">About to reset:<br>'+
+        '<strong>'+bc+'</strong> bookings · <strong>'+cc+'</strong> capital · <strong>'+ec+'</strong> expenses</div>'+
+      (hasRecent
+        ?'<button class="btn-book" style="background:var(--ink)" onclick="goToResetStep2()">Continue →</button>'
+        :'<button class="btn-book" style="background:var(--teal)" onclick="closeResetModal();document.getElementById(\'archive-name\').focus()">📥 Archive First</button>')+
+      '<button class="btn-secondary btn-grey" style="margin-top:8px" onclick="closeResetModal()">Cancel</button>'+
+    '</div>';
+  document.getElementById('resetModal').classList.add('show');
+}
+
+function goToResetStep2(){
+  document.getElementById('resetModalBody').innerHTML=
+    '<div style="background:var(--rose);color:#fff;padding:20px 22px;border-radius:0">'+
+      '<div style="font-family:Playfair Display,serif;font-size:20px;font-weight:900">⚠️ Reset Event Data</div>'+
+      '<div style="font-size:12px;opacity:0.85;margin-top:3px">Step 2 of 3 — Backup</div>'+
+    '</div>'+
+    '<div style="padding:22px">'+
+      '<div style="font-size:13px;color:var(--ink);line-height:1.6;margin-bottom:18px">Download a CSV backup before clearing data.</div>'+
+      '<button class="btn-book" style="background:var(--teal);margin-bottom:8px" onclick="downloadCSVBackup()">⬇ Download CSV Backup</button>'+
+      '<div style="background:var(--cream);padding:10px 14px;border-radius:8px;font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5">💡 After saving your backup, continue to final step.</div>'+
+      '<button class="btn-book" style="background:var(--ink)" onclick="goToResetStep3()">I have my backup — Continue →</button>'+
+      '<button class="btn-secondary btn-grey" style="margin-top:8px" onclick="closeResetModal()">Cancel</button>'+
+    '</div>';
+}
+
+function goToResetStep3(){
+  var bc=bookings.length, cc=financialsState?financialsState.capital.length:0, ec=financialsState?financialsState.expenses.length:0;
+  document.getElementById('resetModalBody').innerHTML=
+    '<div style="background:var(--rose);color:#fff;padding:20px 22px;border-radius:0">'+
+      '<div style="font-family:Playfair Display,serif;font-size:20px;font-weight:900">⚠️ Final Confirmation</div>'+
+      '<div style="font-size:12px;opacity:0.85;margin-top:3px">Step 3 of 3 — Hold to confirm</div>'+
+    '</div>'+
+    '<div style="padding:22px">'+
+      '<div style="background:#FDEAEA;border:1px solid var(--rose);padding:14px;border-radius:10px;margin-bottom:18px">'+
+        '<div style="font-weight:700;color:var(--rose);font-size:14px;margin-bottom:8px">This will permanently delete:</div>'+
+        '<div style="font-size:13px;line-height:1.8;color:var(--ink)">'+
+          '· <strong>'+bc+'</strong> booking'+(bc===1?'':'s')+'<br>'+
+          '· <strong>'+cc+'</strong> capital entr'+(cc===1?'y':'ies')+'<br>'+
+          '· <strong>'+ec+'</strong> expense entr'+(ec===1?'y':'ies')+'</div>'+
+        '<div style="font-size:12px;color:var(--cleared);margin-top:10px;font-weight:600">✅ Event archive will be preserved</div>'+
+      '</div>'+
+      '<div style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:12px;font-weight:600">Press and hold for 5 seconds to confirm</div>'+
+      '<button class="hold-btn" id="hold-reset-btn">'+
+        '<div class="hold-fill" id="hold-fill"></div>'+
+        '<div class="hold-label" id="hold-label">🔴 HOLD TO RESET</div>'+
+      '</button>'+
+      '<button class="btn-secondary btn-grey" style="margin-top:12px" onclick="closeResetModal()">Cancel</button>'+
+    '</div>';
+  var btn=document.getElementById('hold-reset-btn');
+  btn.addEventListener('mousedown',startHold);
+  btn.addEventListener('touchstart',startHold,{passive:true});
+  btn.addEventListener('mouseup',cancelHold);
+  btn.addEventListener('mouseleave',cancelHold);
+  btn.addEventListener('touchend',cancelHold);
+  btn.addEventListener('touchcancel',cancelHold);
+}
+
+function startHold(e){
+  if(resetInProgress) return;
+  resetHoldStart=Date.now();
+  function tick(){
+    var elapsed=Date.now()-resetHoldStart;
+    var pct=Math.min(100,(elapsed/5000)*100);
+    var fill=document.getElementById('hold-fill');
+    var label=document.getElementById('hold-label');
+    if(!fill||!label) return;
+    fill.style.width=pct+'%';
+    var rem=Math.max(0,Math.ceil((5000-elapsed)/1000));
+    label.textContent=rem>0?'🔴 KEEP HOLDING — '+rem+'s':'✅ RELEASING...';
+    if(pct>=100){resetHoldAnimFrame=null;executeReset();return;}
+    resetHoldAnimFrame=requestAnimationFrame(tick);
+  }
+  resetHoldAnimFrame=requestAnimationFrame(tick);
+}
+
+function cancelHold(){
+  if(resetInProgress) return;
+  if(resetHoldAnimFrame){cancelAnimationFrame(resetHoldAnimFrame);resetHoldAnimFrame=null;}
+  var fill=document.getElementById('hold-fill');
+  var label=document.getElementById('hold-label');
+  if(fill) fill.style.width='0%';
+  if(label) label.textContent='🔴 HOLD TO RESET';
+}
+
+async function executeReset(){
+  if(resetInProgress) return;
+  resetInProgress=true;
+  var btn=document.getElementById('hold-reset-btn');
+  if(btn){btn.classList.add('completing');document.getElementById('hold-label').textContent='⏳ Resetting...';}
+  var result=await api('POST','/api/reset');
+  resetInProgress=false;
+  if(!result||!result.success){
+    showToast('❌ Reset failed: '+(result&&result.error?result.error:'Unknown'),'error');
+    if(btn){btn.classList.remove('completing');document.getElementById('hold-label').textContent='🔴 HOLD TO RESET';document.getElementById('hold-fill').style.width='0%';}
+    return;
+  }
+  closeResetModal();
+  bookings=[]; financialsState=null;
+  showSuccess({icon:'✨',title:'Ready for Next Event!',stall:'RESET COMPLETE',detail:result.message||'All data cleared. Archive preserved.'});
+  syncFromSheet(true); loadFinancials(); renderMap();
+}
+
+function closeResetModal(){document.getElementById('resetModal').classList.remove('show');cancelHold();}
+
+// CSV Backup (client-side)
+function downloadCSVBackup(){
+  var lines=[];
+  lines.push('FEST BAZAAR — BACKUP EXPORT');
+  lines.push('Generated: '+new Date().toLocaleString('en-GB'));
+  lines.push('');
+  lines.push('=== BOOKINGS ===');
+  lines.push(['Stall','Zone','Vendor','Brand','Phone','Items','Total','Paid','Due','Status','Date'].map(csvEsc).join(','));
+  bookings.forEach(function(b){
+    lines.push([b.stall,b.zone||'',b.vendor||'',b.brand||'',b.phone||'',b.items||'',b.total||0,b.paid||0,b.due||0,b.paymentStatus||'',b.date||''].map(csvEsc).join(','));
+  });
+  if(financialsState){
+    lines.push('');lines.push('=== CAPITAL ===');
+    lines.push(['Date','Description','Amount'].map(csvEsc).join(','));
+    financialsState.capital.forEach(function(c){lines.push([c.date,c.description||'',c.amount||0].map(csvEsc).join(','));});
+    lines.push('');lines.push('=== EXPENSES ===');
+    lines.push(['Date','Category','Description','Amount'].map(csvEsc).join(','));
+    financialsState.expenses.forEach(function(e){lines.push([e.date,e.category||'',e.description||'',e.amount||0].map(csvEsc).join(','));});
+    var s=financialsState.summary;
+    lines.push('');lines.push('=== SUMMARY ===');
+    [['Capital',s.totalCapital],['Revenue Collected',s.revenueCollected],['Outstanding',s.revenueOutstanding],
+     ['Total Expenses',s.totalExpenses],['Net Profit/Loss',s.netProfit],
+     ['Profit Margin %',s.profitMargin.toFixed(2)],['ROI %',s.roi.toFixed(2)]
+    ].forEach(function(r){lines.push(r.map(csvEsc).join(','));});
+  }
+  var csv='﻿'+lines.join('\n');
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='FestBazaar_Backup_'+new Date().toLocaleDateString('en-GB').replace(/\//g,'-')+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  showToast('✅ CSV backup downloaded','success');
+}
+function csvEsc(v){var s=String(v==null?'':v);if(s.includes(',')||s.includes('"')||s.includes('\n'))return '"'+s.replace(/"/g,'""')+'"';return s;}
+
+// ═══════════════════════════════════════════════════════════════
+// LOGO UPLOAD
+// ═══════════════════════════════════════════════════════════════
+async function uploadLogoFile(stallId, file){
+  if(!file) return false;
+  if(file.size>10*1024*1024){showToast('❌ Logo too large (max 10 MB)','error');return false;}
+  try{
+    var fd=new FormData();
+    fd.append('logo',file);
+    var result=await apiForm('/api/bookings/'+encodeURIComponent(stallId)+'/logo',fd);
+    if(result&&result.success){
+      if(Array.isArray(result.bookings)){bookings=result.bookings;lastSyncTime=Date.now();}
+      refreshAll(); return true;
+    } else {
+      showToast('❌ '+(result&&result.error?result.error:'Upload failed'),'error');
+      return false;
+    }
+  }catch(e){showToast('❌ '+e.message,'error');return false;}
+}
+
+function triggerLogoReplace(stallId){
+  var inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*'; inp.style.display='none';
+  document.body.appendChild(inp);
+  inp.onchange=async function(){
+    var file=inp.files&&inp.files[0];
+    document.body.removeChild(inp);
+    if(!file) return;
+    showToast('📤 Uploading logo...','');
+    var ok=await uploadLogoFile(stallId,file);
+    if(ok){openStallPanel(stallId);showToast('✅ Logo saved for '+stallId,'success');}
+  };
+  inp.click();
+}
+
+function confirmRemoveLogo(stallId){
+  if(!confirm('Remove the logo for '+stallId+'?')) return;
+  removeLogo(stallId);
+}
+
+async function removeLogo(stallId){
+  showToast('🗑 Removing logo...','');
+  var result=await api('DELETE','/api/bookings/'+encodeURIComponent(stallId)+'/logo');
+  if(result&&result.success){
+    if(Array.isArray(result.bookings)){bookings=result.bookings;lastSyncTime=Date.now();}
+    openStallPanel(stallId); refreshAll();
+    showToast('✅ Logo removed','success');
+  } else { showToast('❌ Could not remove','error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INVOICE PDF (jsPDF loaded on demand)
+// ═══════════════════════════════════════════════════════════════
+function downloadInvoice(stallId){
+  var b=getBooking(stallId);
+  if(!b) return;
+  showToast('⏳ Generating PDF...','');
+  if(!window.jspdf){
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload=function(){generatePDF(stallId,b);};
+    s.onerror=function(){showToast('❌ PDF library failed','error');};
+    document.head.appendChild(s);
+  } else { generatePDF(stallId,b); }
+}
+
+function generatePDF(stallId,b){
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  var W=210, zone=(STALL_DEFS[stallId]&&STALL_DEFS[stallId].z)||'city';
+  var zc={food:[232,114,12],grand:[27,107,90],city:[59,130,196],passage:[201,75,75]};
+  var ac=zc[zone];
+  var invNum='FB-'+stallId+'-'+Date.now().toString().slice(-6);
+  var date=b.date||new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+
+  doc.setFillColor(ac[0],ac[1],ac[2]);doc.rect(0,0,W,4,'F');
+  doc.setFillColor(26,26,46);doc.rect(0,4,W,44,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(22);doc.setTextColor(255,255,255);doc.text('Fest Bazaar',14,22);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(180,170,155);doc.text('Stall Booking Invoice',14,29);
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(ac[0],ac[1],ac[2]);doc.text('INVOICE',W-14,22,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(180,170,155);
+  doc.text('# '+invNum,W-14,29,{align:'right'});doc.text('Date: '+date,W-14,34,{align:'right'});
+  doc.setDrawColor(ac[0],ac[1],ac[2]);doc.setLineWidth(0.3);doc.line(14,44,W-14,44);
+
+  var y=56;
+  doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(138,126,110);doc.text('BILLED TO',14,y);
+  y+=6;doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(26,26,46);doc.text(b.vendor,14,y);
+  y+=6;doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(80,80,80);
+  doc.text(b.brand,14,y);y+=5;doc.text(String(b.phone),14,y);
+
+  var y2=56;
+  doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(138,126,110);doc.text('STALL DETAILS',W/2+10,y2);
+  y2+=5;doc.setFillColor(ac[0],ac[1],ac[2]);doc.roundedRect(W/2+10,y2,28,10,2,2,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(255,255,255);doc.text(stallId,W/2+24,y2+7,{align:'center'});
+  y2+=14;doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(80,80,80);
+  doc.text(ZONE_NAMES[zone],W/2+10,y2);y2+=5;doc.text(b.items||'—',W/2+10,y2);
+
+  y=Math.max(y,y2)+16;
+  doc.setFillColor(26,26,46);doc.rect(14,y,W-28,9,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(255,255,255);
+  doc.text('DESCRIPTION',18,y+6);doc.text('DETAILS',100,y+6);doc.text('AMOUNT (PKR)',W-18,y+6,{align:'right'});
+
+  var rows=[
+    ['Stall Booking Fee',stallId+' — '+ZONE_NAMES[zone],Number(b.total).toLocaleString()],
+    ['Amount Paid',b.clearedDate||date,Number(b.paid).toLocaleString()],
+    ['Amount Due',b.paymentStatus==='cleared'?'Cleared':'Outstanding',Number(b.due).toLocaleString()]
+  ];
+  var bgs=[[255,255,255],[245,239,224],[255,255,255]];
+  var dfc=b.due>0?[201,75,75]:[45,122,79];
+  rows.forEach(function(row,i){
+    y+=9;doc.setFillColor(bgs[i][0],bgs[i][1],bgs[i][2]);doc.rect(14,y,W-28,9,'F');
+    doc.setDrawColor(226,217,200);doc.setLineWidth(0.2);doc.line(14,y+9,W-14,y+9);
+    doc.setFont('helvetica',i===2?'bold':'normal');doc.setFontSize(9);
+    var c1=i===2?dfc:[40,40,40];
+    doc.setTextColor(c1[0],c1[1],c1[2]);doc.text(row[0],18,y+6);
+    doc.setTextColor(80,80,80);doc.setFont('helvetica','normal');doc.text(row[1],100,y+6);
+    doc.setFont('helvetica',i===2?'bold':'normal');
+    var c2=i===2?dfc:[26,26,46];
+    doc.setTextColor(c2[0],c2[1],c2[2]);doc.text(row[2],W-18,y+6,{align:'right'});
+  });
+  y+=9;doc.setFillColor(26,26,46);doc.rect(14,y,W-28,10,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(255,255,255);doc.text('TOTAL',18,y+7);
+  doc.setTextColor(ac[0],ac[1],ac[2]);doc.text('PKR '+Number(b.total).toLocaleString(),W-18,y+7,{align:'right'});
+  y+=22;
+  var sc=b.paymentStatus==='cleared'?[45,122,79]:b.paymentStatus==='partial'?[184,134,11]:[201,75,75];
+  var st=b.paymentStatus==='cleared'?'FULLY PAID':b.paymentStatus==='partial'?'PARTIALLY PAID':'PAYMENT PENDING';
+  doc.setDrawColor(sc[0],sc[1],sc[2]);doc.setLineWidth(1);doc.roundedRect(14,y,72,12,2,2);
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(sc[0],sc[1],sc[2]);doc.text(st,50,y+8,{align:'center'});
+  y=270;doc.setDrawColor(226,217,200);doc.setLineWidth(0.3);doc.line(14,y,W-14,y);
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(138,126,110);
+  doc.text('Fest Bazaar  |  Thank you for booking with us!',W/2,y+7,{align:'center'});
+  doc.text('For queries, contact the Fest Bazaar team.',W/2,y+12,{align:'center'});
+  doc.setFillColor(ac[0],ac[1],ac[2]);doc.rect(0,289,W,4,'F');
+  doc.save('Invoice_'+stallId+'_'+(b.brand||'vendor').replace(/\s+/g,'_')+'.pdf');
+  showToast('🧾 Invoice downloaded!','success');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOOKINGS LIST
+// ═══════════════════════════════════════════════════════════════
+function renderBookingsList(query){
+  query=(query||'').toLowerCase();
+  var list=document.getElementById('bookings-list');
+  var filtered=bookings.filter(function(b){
+    return !query||b.vendor.toLowerCase().includes(query)||b.brand.toLowerCase().includes(query)||
+      b.stall.toLowerCase().includes(query)||(b.phone&&b.phone.includes(query));
+  });
+  if(!filtered.length){
+    list.innerHTML='<div class="empty-state"><div class="icon">📋</div><p>'+(query?'No results found':'No bookings yet')+'</p></div>';
+    return;
+  }
+  list.innerHTML=filtered.map(function(b){
+    var zone=(STALL_DEFS[b.stall]&&STALL_DEFS[b.stall].z)||'city';
+    var scls={cleared:'cleared',partial:'partial',pending:'pending'}[b.paymentStatus]||'pending';
+    var slbl={cleared:'✅ Cleared',partial:'⚠ Partial',pending:'❌ Pending'}[b.paymentStatus]||'—';
+    return '<div class="booking-card" onclick="switchTab(\'map\');setTimeout(function(){openStallPanel(\''+b.stall+'\');},150)">'+
+      '<div class="bc-stall '+zone+'">'+b.stall+'</div>'+
+      '<div>'+
+        '<div class="bc-name">'+esc(b.vendor)+(b.logoUrl?' <span title="Logo uploaded" style="color:var(--teal);font-size:12px">📷</span>':'')+'</div>'+
+        '<div class="bc-brand">'+esc(b.brand)+'</div>'+
+        '<div class="bc-phone">'+esc(b.phone)+'</div>'+
+      '</div>'+
+      '<div>'+
+        '<div class="bc-status '+scls+'">'+slbl+'</div>'+
+        (b.due>0?'<div class="bc-due" style="color:var(--pending)">Due: '+pkr(b.due)+'</div>':'')+
+      '</div>'+
+      '</div>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REMINDERS
+// ═══════════════════════════════════════════════════════════════
+function renderReminders(){
+  var list=document.getElementById('reminders-list');
+  var pending=bookings.filter(function(b){return b.paymentStatus!=='cleared';});
+  if(!pending.length){
+    list.innerHTML='<div class="empty-state"><div class="icon">🎉</div><p>All payments cleared!</p></div>';
+    list.onclick=null; return;
+  }
+  list.innerHTML=pending.map(function(b){
+    var msg='Dear '+b.vendor+', this is a reminder that your stall '+b.stall+' at Fest Bazaar has an outstanding amount of '+pkr(b.due)+'. Kindly clear your payment before the event. Thank you!';
+    var zone=(STALL_DEFS[b.stall]&&STALL_DEFS[b.stall].z)||'city';
+    return '<div class="booking-card reminder-card" data-stall="'+b.stall+'" data-msg="'+msg.replace(/"/g,'&quot;')+'">'+
+      '<div class="bc-stall '+zone+'">'+b.stall+'</div>'+
+      '<div>'+
+        '<div class="bc-name">'+esc(b.vendor)+' — '+esc(b.brand)+'</div>'+
+        '<div class="bc-brand" style="margin-top:4px;color:var(--ink);line-height:1.5">'+msg+'</div>'+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--sky);font-weight:600;white-space:nowrap">Tap to copy</div>'+
+      '</div>';
+  }).join('');
+  list.onclick=function(e){
+    var card=e.target.closest('.reminder-card');
+    if(!card) return;
+    var msg=card.dataset.msg, stall=card.dataset.stall;
+    if(navigator.clipboard&&window.isSecureContext){
+      navigator.clipboard.writeText(msg).then(function(){showToast('✅ Copied for '+stall,'success');}).catch(function(){fallbackCopy(stall,msg);});
+    } else { fallbackCopy(stall,msg); }
+  };
+}
+
+function fallbackCopy(stall,msg){
+  var ta=document.createElement('textarea');
+  ta.value=msg; ta.style.cssText='position:fixed;top:0;left:0;opacity:0;';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try{document.execCommand('copy');showToast('✅ Copied for '+stall,'success');}
+  catch(e){showToast('Long-press to copy manually','error');}
+  document.body.removeChild(ta);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════
+var toastTimer;
+function showToast(msg,type){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show '+(type||'');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){t.classList.remove('show');},3500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PASSCODE
+// ═══════════════════════════════════════════════════════════════
+var pcEntry='';
+function pcPress(d){if(pcEntry.length>=4)return;pcEntry+=d;updateDots();if(pcEntry.length===4)setTimeout(checkPasscode,150);}
+function pcDelete(){pcEntry=pcEntry.slice(0,-1);updateDots();document.getElementById('pcError').textContent='';}
+function updateDots(){
+  for(var i=0;i<4;i++){
+    var dot=document.getElementById('pd'+i);
+    dot.classList.toggle('filled',i<pcEntry.length);
+    dot.classList.remove('error');
+  }
+}
+function checkPasscode(){
+  if(pcEntry===PASSCODE){
+    sessionStorage.setItem('fb_auth','1');
+    sessionStorage.removeItem('fb_admin');
+    document.getElementById('passcodeWall').classList.add('hidden');
+    document.getElementById('tab-admin').style.display='none';
+    syncFromSheet(true);
+  } else if(pcEntry===ADMIN_PASSCODE){
+    sessionStorage.setItem('fb_auth','1');
+    sessionStorage.setItem('fb_admin','1');
+    document.getElementById('passcodeWall').classList.add('hidden');
+    document.getElementById('tab-admin').style.display='block';
+    syncFromSheet(true);
+    setTimeout(function(){showToast('🔐 Admin mode active','success');},600);
+  } else {
+    for(var i=0;i<4;i++){
+      document.getElementById('pd'+i).classList.add('error');
+      document.getElementById('pd'+i).classList.remove('filled');
+    }
+    document.getElementById('pcError').textContent='❌ Wrong passcode';
+    pcEntry=''; setTimeout(updateDots,600);
+  }
+}
+
+function logoutAdmin(){
+  sessionStorage.removeItem('fb_admin');
+  document.getElementById('tab-admin').style.display='none';
+  switchTab('dashboard');
+  showToast('🔓 Exited admin mode','');
+}
+
+function logoutUser(){
+  sessionStorage.removeItem('fb_auth');
+  sessionStorage.removeItem('fb_admin');
+  document.getElementById('tab-admin').style.display='none';
+  document.getElementById('passcodeWall').classList.remove('hidden');
+  pcEntry=''; updateDots();
+  document.getElementById('pcError').textContent='';
+  switchTab('dashboard');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENTER KEY NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+var ENTER_SEQ={
+  'f-vendor':{next:'f-brand'},'f-brand':{next:'f-phone'},'f-phone':{next:'f-items'},
+  'f-items':{next:'f-total'},'f-total':{next:'f-paid'},'f-paid':{submit:'btn-submit'},
+  'cap-desc':{next:'cap-amt'},'cap-amt':{submit:'btn-addcap'},
+  'exp-cat':{next:'exp-desc'},'exp-desc':{next:'exp-amt'},'exp-amt':{submit:'btn-addexp'}
+};
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Enter') return;
+  var t=e.target;
+  if(!t||!t.id||!ENTER_SEQ[t.id]) return;
+  if(t.tagName==='TEXTAREA'&&e.shiftKey) return;
+  e.preventDefault();
+  var rule=ENTER_SEQ[t.id];
+  if(rule.next){var nx=document.getElementById(rule.next);if(nx)nx.focus();}
+  else if(rule.submit){var btn=document.getElementById(rule.submit);if(btn&&!btn.disabled)btn.click();}
+});
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+if(sessionStorage.getItem('fb_auth')==='1'){
+  document.getElementById('passcodeWall').classList.add('hidden');
+  if(sessionStorage.getItem('fb_admin')==='1'){
+    document.getElementById('tab-admin').style.display='block';
+  }
+  syncFromSheet(true);
+} else {
+  refreshAll();
+}
+</script>
+</body>
+</html>
