@@ -22,7 +22,11 @@ const MONGO_URI = process.env.MONGO_URI ||
 let db;
 async function getDB() {
   if (!db) {
-    const client = new MongoClient(MONGO_URI);
+    const client = new MongoClient(MONGO_URI, {
+      tls: true,
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000
+    });
     await client.connect();
     db = client.db('festbazaar');
   }
