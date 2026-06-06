@@ -1,43 +1,51 @@
-const express = require('express');
-const multer  = require('multer');
-const path    = require('path');
-const fs      = require('fs');
+const express    = require('express');
+const multer     = require('multer');
+const path       = require('path');
+const { MongoClient } = require('mongodb');
+const cloudinary = require('cloudinary').v2;
+const { Readable } = require('stream');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ── Directories ───────────────────────────────────────────────
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
+// ── Cloudinary ────────────────────────────────────────────────
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dkhfqrrpj',
+  api_key:    process.env.CLOUDINARY_API_KEY    || '369298979387899',
+  api_secret: process.env.CLOUDINARY_API_SECRET || 'M83hGVthkB21yGb1rYXwQPMw_zM'
+});
 
-// ── JSON Database ─────────────────────────────────────────────
-const DB_FILE = path.join(__dirname, 'festbazaar.json');
+// ── MongoDB ───────────────────────────────────────────────────
+const MONGO_URI = process.env.MONGO_URI ||
+  'mongodb+srv://hamzarafay200822_db_user:0Kk81KugnN4pP7lt@cluster0.bbfh4uq.mongodb.net/festbazaar?appName=Cluster0';
 
-function loadDB() {
-  if (fs.existsSync(DB_FILE)) {
-    try { return JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); } catch(e) {}
+let db;
+async function getDB() {
+  if (!db) {
+    const client = new MongoClient(MONGO_URI);
+    await client.connect();
+    db = client.db('festbazaar');
   }
-  return { bookings: [], capital: [], expenses: [], archive: [] };
+  return db;
 }
 
-function saveDB(db) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+async function loadDB() {
+  const database = await getDB();
+  const [bookings, capital, expenses, archive] = await Promise.all([
+    database.collection('bookings').find({}).toArray(),
+    database.collection('capital').find({}).toArray(),
+    database.collection('expenses').find({}).toArray(),
+    database.collection('archive').find({}).toArray()
+  ]);
+  return { bookings, capital, expenses, archive };
 }
+
+// ── Multer (memory storage for Cloudinary) ────────────────────
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 // ── Middleware ────────────────────────────────────────────────
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(UPLOADS_DIR));
-
-// ── Multer ────────────────────────────────────────────────────
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
-  filename:    (req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.jpg';
-    cb(null, `${req.params.stall}_${Date.now()}${ext}`);
-  }
-});
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 // ── Helpers ───────────────────────────────────────────────────
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -71,10 +79,10 @@ function mapBooking(r) {
   };
 }
 
-function getFinancials(db) {
-  const capital  = db.capital.map(r => ({ id:r.id, date:fmtDate(r.date), description:r.description||'', amount:r.amount||0 }));
-  const expenses = db.expenses.map(r => ({ id:r.id, date:fmtDate(r.date), category:r.category||'', description:r.description||'', amount:r.amount||0 }));
-  const bookings = db.bookings.map(mapBooking);
+function getFinancials(data) {
+  const capital  = data.capital.map(r => ({ id:r.id, date:fmtDate(r.date), description:r.description||'', amount:r.amount||0 }));
+  const expenses = data.expenses.map(r => ({ id:r.id, date:fmtDate(r.date), category:r.category||'', description:r.description||'', amount:r.amount||0 }));
+  const bookings = data.bookings.map(mapBooking);
 
   const collected   = bookings.reduce((s,b) => s+(b.paid||0), 0);
   const expected    = bookings.reduce((s,b) => s+(b.total||0), 0);
@@ -97,161 +105,246 @@ function getFinancials(db) {
   };
 }
 
+function uploadToCloudinary(buffer, filename) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: 'fest-bazaar', public_id: filename, overwrite: true },
+      (error, result) => { if (error) reject(error); else resolve(result); }
+    );
+    Readable.from(buffer).pipe(stream);
+  });
+}
+
+function deleteFromCloudinary(publicId) {
+  return cloudinary.uploader.destroy(publicId).catch(() => {});
+}
+
+function getPublicId(logoUrl) {
+  if (!logoUrl) return null;
+  // Extract public_id from Cloudinary URL: .../fest-bazaar/filename
+  const match = logoUrl.match(/fest-bazaar\/([^.]+)/);
+  return match ? `fest-bazaar/${match[1]}` : null;
+}
+
 // ── Bookings ──────────────────────────────────────────────────
-app.get('/api/bookings', (req, res) => {
-  const db = loadDB();
-  res.json({ bookings: db.bookings.map(mapBooking) });
+app.get('/api/bookings', async (req, res) => {
+  try {
+    const data = await loadDB();
+    res.json({ bookings: data.bookings.map(mapBooking) });
+  } catch(e) { res.json({ bookings: [], error: e.message }); }
 });
 
-app.post('/api/bookings', (req, res) => {
-  const b  = req.body;
-  const db = loadDB();
-  if (!b.stall||!b.vendor||!b.brand||!b.phone)
-    return res.json({ success:false, error:'Missing required fields' });
-  if (db.bookings.find(r => r.stall === b.stall))
-    return res.json({ success:false, error:'Double booking: '+b.stall, bookings:db.bookings.map(mapBooking) });
-
-  const total = parseFloat(b.total)||0, paid = parseFloat(b.paid)||0;
-  db.bookings.push({ stall:b.stall, zone:b.zone||'', vendor:b.vendor, brand:b.brand,
-    phone:b.phone, items:b.items||'', total, paid, payment_status: paid>=total?'cleared':paid===0?'pending':'partial',
-    booking_date: new Date().toISOString() });
-  saveDB(db);
-  res.json({ success:true, bookings:db.bookings.map(mapBooking) });
+app.post('/api/bookings', async (req, res) => {
+  try {
+    const b = req.body;
+    if (!b.stall||!b.vendor||!b.brand||!b.phone)
+      return res.json({ success:false, error:'Missing required fields' });
+    const database = await getDB();
+    const existing = await database.collection('bookings').findOne({ stall: b.stall });
+    if (existing) {
+      const data = await loadDB();
+      return res.json({ success:false, error:'Double booking: '+b.stall, bookings:data.bookings.map(mapBooking) });
+    }
+    const total = parseFloat(b.total)||0, paid = parseFloat(b.paid)||0;
+    await database.collection('bookings').insertOne({
+      stall:b.stall, zone:b.zone||'', vendor:b.vendor, brand:b.brand,
+      phone:b.phone, items:b.items||'', total, paid,
+      payment_status: paid>=total?'cleared':paid===0?'pending':'partial',
+      booking_date: new Date().toISOString()
+    });
+    const data = await loadDB();
+    res.json({ success:true, bookings:data.bookings.map(mapBooking) });
+  } catch(e) { res.json({ success:false, error: e.message }); }
 });
 
-app.post('/api/bookings/:stall/clear-payment', (req, res) => {
-  const db = loadDB();
-  const row = db.bookings.find(r => r.stall === req.params.stall);
-  if (!row) return res.json({ success:false, error:'Stall not found' });
-  row.paid = row.total; row.payment_status = 'cleared'; row.cleared_date = new Date().toISOString();
-  saveDB(db);
-  res.json({ success:true, bookings:db.bookings.map(mapBooking) });
+app.post('/api/bookings/:stall/clear-payment', async (req, res) => {
+  try {
+    const database = await getDB();
+    const row = await database.collection('bookings').findOne({ stall: req.params.stall });
+    if (!row) return res.json({ success:false, error:'Stall not found' });
+    await database.collection('bookings').updateOne(
+      { stall: req.params.stall },
+      { $set: { paid: row.total, payment_status:'cleared', cleared_date: new Date().toISOString() } }
+    );
+    const data = await loadDB();
+    res.json({ success:true, bookings:data.bookings.map(mapBooking) });
+  } catch(e) { res.json({ success:false, error: e.message }); }
 });
 
-app.delete('/api/bookings/:stall', (req, res) => {
-  const db  = loadDB();
-  const idx = db.bookings.findIndex(r => r.stall === req.params.stall);
-  if (idx === -1) return res.json({ success:false, error:'Stall not found' });
-  const row = db.bookings[idx];
-  if (row.logo_url) { const fp = path.join(UPLOADS_DIR, path.basename(row.logo_url)); if (fs.existsSync(fp)) fs.unlinkSync(fp); }
-  db.bookings.splice(idx, 1);
-  saveDB(db);
-  res.json({ success:true, bookings:db.bookings.map(mapBooking) });
+app.delete('/api/bookings/:stall', async (req, res) => {
+  try {
+    const database = await getDB();
+    const row = await database.collection('bookings').findOne({ stall: req.params.stall });
+    if (!row) return res.json({ success:false, error:'Stall not found' });
+    if (row.logo_url) await deleteFromCloudinary(getPublicId(row.logo_url));
+    await database.collection('bookings').deleteOne({ stall: req.params.stall });
+    const data = await loadDB();
+    res.json({ success:true, bookings:data.bookings.map(mapBooking) });
+  } catch(e) { res.json({ success:false, error: e.message }); }
 });
 
 // ── Logo ──────────────────────────────────────────────────────
-app.post('/api/bookings/:stall/logo', upload.single('logo'), (req, res) => {
-  const db  = loadDB();
-  const row = db.bookings.find(r => r.stall === req.params.stall);
-  if (!row) { if (req.file) fs.unlinkSync(req.file.path); return res.json({ success:false, error:'Booking not found' }); }
-  if (row.logo_url) { const fp = path.join(UPLOADS_DIR, path.basename(row.logo_url)); if (fs.existsSync(fp)) fs.unlinkSync(fp); }
-  row.logo_url = '/uploads/' + req.file.filename;
-  saveDB(db);
-  res.json({ success:true, logoUrl:row.logo_url, bookings:db.bookings.map(mapBooking) });
+app.post('/api/bookings/:stall/logo', upload.single('logo'), async (req, res) => {
+  try {
+    const database = await getDB();
+    const row = await database.collection('bookings').findOne({ stall: req.params.stall });
+    if (!row) return res.json({ success:false, error:'Booking not found' });
+    if (row.logo_url) await deleteFromCloudinary(getPublicId(row.logo_url));
+    const result = await uploadToCloudinary(req.file.buffer, `${req.params.stall}_${Date.now()}`);
+    await database.collection('bookings').updateOne(
+      { stall: req.params.stall },
+      { $set: { logo_url: result.secure_url } }
+    );
+    const data = await loadDB();
+    res.json({ success:true, logoUrl:result.secure_url, bookings:data.bookings.map(mapBooking) });
+  } catch(e) { res.json({ success:false, error: e.message }); }
 });
 
-app.delete('/api/bookings/:stall/logo', (req, res) => {
-  const db  = loadDB();
-  const row = db.bookings.find(r => r.stall === req.params.stall);
-  if (!row) return res.json({ success:false, error:'Booking not found' });
-  if (row.logo_url) { const fp = path.join(UPLOADS_DIR, path.basename(row.logo_url)); if (fs.existsSync(fp)) fs.unlinkSync(fp); }
-  row.logo_url = null;
-  saveDB(db);
-  res.json({ success:true, bookings:db.bookings.map(mapBooking) });
+app.delete('/api/bookings/:stall/logo', async (req, res) => {
+  try {
+    const database = await getDB();
+    const row = await database.collection('bookings').findOne({ stall: req.params.stall });
+    if (!row) return res.json({ success:false, error:'Booking not found' });
+    if (row.logo_url) await deleteFromCloudinary(getPublicId(row.logo_url));
+    await database.collection('bookings').updateOne(
+      { stall: req.params.stall },
+      { $set: { logo_url: null } }
+    );
+    const data = await loadDB();
+    res.json({ success:true, bookings:data.bookings.map(mapBooking) });
+  } catch(e) { res.json({ success:false, error: e.message }); }
 });
 
 // ── Financials ────────────────────────────────────────────────
-app.get('/api/financials', (req, res) => res.json(getFinancials(loadDB())));
-
-app.post('/api/capital', (req, res) => {
-  const { description, amount } = req.body;
-  if (!description||!amount) return res.json({ success:false, error:'Missing fields' });
-  const db = loadDB();
-  db.capital.unshift({ id:'CAP-'+Date.now(), date:new Date().toISOString(), description, amount:parseFloat(amount)||0 });
-  saveDB(db);
-  res.json({ success:true, financials:getFinancials(db) });
+app.get('/api/financials', async (req, res) => {
+  try {
+    const data = await loadDB();
+    res.json(getFinancials(data));
+  } catch(e) { res.json({ error: e.message }); }
 });
 
-app.delete('/api/capital/:id', (req, res) => {
-  const db  = loadDB();
-  const idx = db.capital.findIndex(r => r.id === req.params.id);
-  if (idx === -1) return res.json({ success:false, error:'Not found' });
-  db.capital.splice(idx, 1); saveDB(db);
-  res.json({ success:true, financials:getFinancials(db) });
+app.post('/api/capital', async (req, res) => {
+  try {
+    const { description, amount } = req.body;
+    if (!description||!amount) return res.json({ success:false, error:'Missing fields' });
+    const database = await getDB();
+    await database.collection('capital').insertOne({
+      id:'CAP-'+Date.now(), date:new Date().toISOString(),
+      description, amount:parseFloat(amount)||0
+    });
+    const data = await loadDB();
+    res.json({ success:true, financials:getFinancials(data) });
+  } catch(e) { res.json({ success:false, error: e.message }); }
 });
 
-app.post('/api/expenses', (req, res) => {
-  const { category, description, amount } = req.body;
-  if (!description||!amount) return res.json({ success:false, error:'Missing fields' });
-  const db = loadDB();
-  db.expenses.unshift({ id:'EXP-'+Date.now(), date:new Date().toISOString(),
-    category:category||'Miscellaneous', description, amount:parseFloat(amount)||0 });
-  saveDB(db);
-  res.json({ success:true, financials:getFinancials(db) });
+app.delete('/api/capital/:id', async (req, res) => {
+  try {
+    const database = await getDB();
+    await database.collection('capital').deleteOne({ id: req.params.id });
+    const data = await loadDB();
+    res.json({ success:true, financials:getFinancials(data) });
+  } catch(e) { res.json({ success:false, error: e.message }); }
 });
 
-app.delete('/api/expenses/:id', (req, res) => {
-  const db  = loadDB();
-  const idx = db.expenses.findIndex(r => r.id === req.params.id);
-  if (idx === -1) return res.json({ success:false, error:'Not found' });
-  db.expenses.splice(idx, 1); saveDB(db);
-  res.json({ success:true, financials:getFinancials(db) });
+app.post('/api/expenses', async (req, res) => {
+  try {
+    const { category, description, amount } = req.body;
+    if (!description||!amount) return res.json({ success:false, error:'Missing fields' });
+    const database = await getDB();
+    await database.collection('expenses').insertOne({
+      id:'EXP-'+Date.now(), date:new Date().toISOString(),
+      category:category||'Miscellaneous', description, amount:parseFloat(amount)||0
+    });
+    const data = await loadDB();
+    res.json({ success:true, financials:getFinancials(data) });
+  } catch(e) { res.json({ success:false, error: e.message }); }
+});
+
+app.delete('/api/expenses/:id', async (req, res) => {
+  try {
+    const database = await getDB();
+    await database.collection('expenses').deleteOne({ id: req.params.id });
+    const data = await loadDB();
+    res.json({ success:true, financials:getFinancials(data) });
+  } catch(e) { res.json({ success:false, error: e.message }); }
 });
 
 // ── Archive ───────────────────────────────────────────────────
-function archiveList(db) {
-  return [...db.archive].sort((a,b) => new Date(b.archived_date)-new Date(a.archived_date))
+function archiveList(archive) {
+  return [...archive].sort((a,b) => new Date(b.archived_date)-new Date(a.archived_date))
     .map(r => ({ id:r.id, name:r.name||'', date:fmtDateTime(r.archived_date),
       dateRaw: new Date(r.archived_date).getTime(),
       bookingsCount:r.bookings_count||0, revenue:r.revenue||0,
       capital:r.capital_amount||0, expenses:r.expenses_amount||0, netProfit:r.net_profit||0 }));
 }
 
-app.get('/api/archive', (req, res) => res.json({ events: archiveList(loadDB()) }));
-
-app.get('/api/archive/:id', (req, res) => {
-  const db  = loadDB();
-  const row = db.archive.find(r => r.id === req.params.id);
-  if (!row) return res.json({ success:false, error:'Not found' });
-  res.json({ success:true, event:{ id:row.id, name:row.name||'',
-    date:fmtDateTime(row.archived_date), bookings:row.bookings_json||[], financials:row.financials_json||null }});
+app.get('/api/archive', async (req, res) => {
+  try {
+    const data = await loadDB();
+    res.json({ events: archiveList(data.archive) });
+  } catch(e) { res.json({ events: [] }); }
 });
 
-app.post('/api/archive', (req, res) => {
-  const db = loadDB();
-  const bookings = db.bookings.map(mapBooking);
-  if (!bookings.length) return res.json({ success:false, error:'No bookings to archive' });
-  const fin  = getFinancials(db);
-  const now  = new Date().toISOString();
-  const name = req.body.name || ('Event - '+fmtDate(now));
-  db.archive.push({ id:'EVT-'+Date.now(), name, archived_date:now,
-    bookings_count:bookings.length, revenue:fin.summary.revenueCollected,
-    capital_amount:fin.summary.totalCapital, expenses_amount:fin.summary.totalExpenses,
-    net_profit:fin.summary.netProfit, bookings_json:bookings,
-    financials_json:{ capital:fin.capital, expenses:fin.expenses, summary:fin.summary, breakdown:fin.breakdown }});
-  saveDB(db);
-  res.json({ success:true, events:archiveList(db) });
+app.get('/api/archive/:id', async (req, res) => {
+  try {
+    const database = await getDB();
+    const row = await database.collection('archive').findOne({ id: req.params.id });
+    if (!row) return res.json({ success:false, error:'Not found' });
+    res.json({ success:true, event:{ id:row.id, name:row.name||'',
+      date:fmtDateTime(row.archived_date), bookings:row.bookings_json||[], financials:row.financials_json||null }});
+  } catch(e) { res.json({ success:false, error: e.message }); }
 });
 
-app.delete('/api/archive/:id', (req, res) => {
-  const db  = loadDB();
-  const idx = db.archive.findIndex(r => r.id === req.params.id);
-  if (idx === -1) return res.json({ success:false, error:'Not found' });
-  db.archive.splice(idx, 1); saveDB(db);
-  res.json({ success:true, events:archiveList(db) });
+app.post('/api/archive', async (req, res) => {
+  try {
+    const data = await loadDB();
+    const bookings = data.bookings.map(mapBooking);
+    if (!bookings.length) return res.json({ success:false, error:'No bookings to archive' });
+    const fin  = getFinancials(data);
+    const now  = new Date().toISOString();
+    const name = req.body.name || ('Event - '+fmtDate(now));
+    const database = await getDB();
+    await database.collection('archive').insertOne({
+      id:'EVT-'+Date.now(), name, archived_date:now,
+      bookings_count:bookings.length, revenue:fin.summary.revenueCollected,
+      capital_amount:fin.summary.totalCapital, expenses_amount:fin.summary.totalExpenses,
+      net_profit:fin.summary.netProfit, bookings_json:bookings,
+      financials_json:{ capital:fin.capital, expenses:fin.expenses, summary:fin.summary, breakdown:fin.breakdown }
+    });
+    const updated = await loadDB();
+    res.json({ success:true, events:archiveList(updated.archive) });
+  } catch(e) { res.json({ success:false, error: e.message }); }
+});
+
+app.delete('/api/archive/:id', async (req, res) => {
+  try {
+    const database = await getDB();
+    await database.collection('archive').deleteOne({ id: req.params.id });
+    const data = await loadDB();
+    res.json({ success:true, events:archiveList(data.archive) });
+  } catch(e) { res.json({ success:false, error: e.message }); }
 });
 
 // ── Reset ─────────────────────────────────────────────────────
-app.post('/api/reset', (req, res) => {
-  const db = loadDB();
-  const bc = db.bookings.length, cc = db.capital.length, ec = db.expenses.length;
-  db.bookings.forEach(r => {
-    if (r.logo_url) { const fp = path.join(UPLOADS_DIR, path.basename(r.logo_url)); if (fs.existsSync(fp)) fs.unlinkSync(fp); }
-  });
-  db.bookings = []; db.capital = []; db.expenses = [];
-  saveDB(db);
-  res.json({ success:true, cleared:{ bookings:bc, capital:cc, expenses:ec },
-    message:`Reset complete. ${bc} bookings, ${cc} capital entries, ${ec} expenses cleared. Archive preserved.` });
+app.post('/api/reset', async (req, res) => {
+  try {
+    const database = await getDB();
+    const bookings = await database.collection('bookings').find({}).toArray();
+    // Delete all logos from Cloudinary
+    for (const b of bookings) {
+      if (b.logo_url) await deleteFromCloudinary(getPublicId(b.logo_url));
+    }
+    const bc = bookings.length;
+    const cc = await database.collection('capital').countDocuments();
+    const ec = await database.collection('expenses').countDocuments();
+    await Promise.all([
+      database.collection('bookings').deleteMany({}),
+      database.collection('capital').deleteMany({}),
+      database.collection('expenses').deleteMany({})
+    ]);
+    res.json({ success:true, cleared:{ bookings:bc, capital:cc, expenses:ec },
+      message:`Reset complete. ${bc} bookings, ${cc} capital entries, ${ec} expenses cleared. Archive preserved.` });
+  } catch(e) { res.json({ success:false, error: e.message }); }
 });
 
 // ── Start ─────────────────────────────────────────────────────
