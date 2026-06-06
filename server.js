@@ -24,8 +24,9 @@ async function getDB() {
   if (!db) {
     const client = new MongoClient(MONGO_URI, {
       tls: true,
-      serverSelectionTimeoutMS: 10000,
-      connectTimeoutMS: 10000
+      tlsAllowInvalidCertificates: true,
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000
     });
     await client.connect();
     db = client.db('festbazaar');
