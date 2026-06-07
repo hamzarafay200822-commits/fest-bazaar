@@ -506,8 +506,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
   </div>
 
   <div class="admin-section">
-    <div class="admin-section-title">🚫 Stall Management</div>
-    <div class="admin-card">
+    <div class="admin-section-title" style="cursor:pointer;user-select:none;justify-content:space-between;display:flex;align-items:center" onclick="toggleStallMgmt()">
+      <span>🚫 Stall Management</span>
+      <span id="stall-mgmt-arrow" style="font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:500">▼ Show</span>
+    </div>
+    <div class="admin-card" id="stall-mgmt-panel" style="display:none">
       <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5">
         Click any stall to <strong>disable</strong> or <strong>re-enable</strong> it. Disabled stalls appear blacked out on the floor map and cannot be booked.
       </div>
@@ -1100,6 +1103,19 @@ function closeSuccess(){document.getElementById('successModal').classList.remove
 // ═══════════════════════════════════════════════════════════════
 // STALL MANAGEMENT
 // ═══════════════════════════════════════════════════════════════
+function toggleStallMgmt(){
+  var panel=document.getElementById('stall-mgmt-panel');
+  var arrow=document.getElementById('stall-mgmt-arrow');
+  if(panel.style.display==='none'){
+    panel.style.display='block';
+    arrow.textContent='▲ Hide';
+    renderStallMgmt();
+  } else {
+    panel.style.display='none';
+    arrow.textContent='▼ Show';
+  }
+}
+
 function renderStallMgmt(){
   var grid=document.getElementById('stall-mgmt-grid');
   if(!grid) return;
@@ -1151,7 +1167,6 @@ async function loadFinancials(){
     archName.value='Event - '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
   }
   loadArchivedEvents();
-  renderStallMgmt();
 }
 
 function renderFinancials(){
