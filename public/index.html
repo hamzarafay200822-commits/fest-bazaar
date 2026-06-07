@@ -4,64 +4,133 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Fest Bazaar — Stall Management</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.29.0/dist/tabler-icons.min.css">
 <style>
 /* ── TOKENS ───────────────────────────────────────────────────── */
 :root {
-  --ink:#1A1A2E; --paper:#FDFAF5; --saffron:#E8720C; --teal:#1B6B5A;
-  --rose:#C94B4B; --sky:#3B82C4; --cream:#F5EFE0; --muted:#8A7E6E;
-  --border:#E2D9C8; --shadow:rgba(26,26,46,0.12);
+  /* Brand */
+  --maroon:#6B1B2A; --gold:#C9A060; --bg:#FDF8F4;
+  --surface:#fff; --border:#EEE6E0;
+  --ink:#1A0A0D; --muted:#A88888;
+  /* Semantic */
+  --success:#246B38; --success-bg:#E8F5EC;
+  --warn:#7A5810;   --warn-bg:#FEF5E0;
+  --danger:#8B2020; --danger-bg:#FCEAEA;
+  /* Zone colours (unchanged) */
   --food:#E8720C; --grand:#1B6B5A; --city:#3B82C4; --passage:#C94B4B;
   --food-bg:#FFF3E8; --grand-bg:#E8F5F0; --city-bg:#E8F0FA; --passage-bg:#FAE8E8;
-  --cleared:#2D7A4F; --partial:#B8860B; --pending:#C94B4B;
-  --cleared-bg:#E8F5EE; --partial-bg:#FFF8E1; --pending-bg:#FDEAEA;
+  /* Payment status */
+  --cleared:#246B38; --partial:#7A5810; --pending:#8B2020;
+  --cleared-bg:#E8F5EC; --partial-bg:#FEF5E0; --pending-bg:#FCEAEA;
+  /* Legacy aliases so existing CSS keeps working */
+  --paper:#FDF8F4; --saffron:#C9A060; --teal:#246B38;
+  --rose:#8B2020; --sky:#3B82C4;
+  --cream:#F5EDE8; --shadow:rgba(107,27,42,0.08);
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;overflow-x:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;overflow-x:hidden;font-size:14px;font-weight:400;}
 
-/* ── HEADER ──────────────────────────────────────────────────── */
-.header{background:linear-gradient(135deg,#1A1A2E 0%,#0F3460 100%);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;box-shadow:0 2px 20px var(--shadow);}
-.logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.5px;}
-.logo span{color:var(--saffron);}
-.logo-version{font-size:9px;color:rgba(255,255,255,0.35);margin-left:8px;font-family:monospace;align-self:flex-end;margin-bottom:14px;}
-.sync-status{font-size:12px;color:rgba(255,255,255,0.55);display:flex;align-items:center;gap:6px;}
-.sync-dot{width:8px;height:8px;border-radius:50%;background:#4CAF50;flex-shrink:0;}
+/* ── SIDEBAR ─────────────────────────────────────────────────── */
+.sidebar{
+  width:54px;height:100vh;position:fixed;left:0;top:0;
+  background:var(--maroon);display:flex;flex-direction:column;
+  align-items:center;z-index:100;
+}
+.sb-logo{
+  width:34px;height:34px;background:rgba(255,255,255,0.15);
+  border-radius:6px;margin:12px 0 16px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:500;color:rgba(255,255,255,0.6);
+  flex-shrink:0;letter-spacing:0.02em;
+}
+.sb-nav{display:flex;flex-direction:column;align-items:center;flex:1;gap:2px;width:100%;padding:0 6px;}
+.nav-item{
+  width:42px;height:42px;border-radius:8px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;transition:background 0.15s;flex-shrink:0;gap:2px;
+}
+.nav-item .ti{font-size:17px;color:#C08090;line-height:1;}
+.nav-item-lbl{font-size:6.5px;font-weight:500;color:#C08090;letter-spacing:0.01em;}
+.nav-item.active{background:rgba(255,255,255,0.15);}
+.nav-item.active .ti,.nav-item.active .nav-item-lbl{color:#fff;}
+.nav-item:hover:not(.active){background:rgba(255,255,255,0.08);}
+.sb-sep{width:24px;height:1px;background:rgba(255,255,255,0.15);margin:6px 0;flex-shrink:0;}
+.sb-bottom{display:flex;flex-direction:column;align-items:center;gap:2px;margin-bottom:12px;padding:0 6px;}
+
+/* ── TOPBAR ──────────────────────────────────────────────────── */
+.topbar{
+  height:44px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;position:sticky;top:0;z-index:90;flex-shrink:0;
+}
+.topbar-title{font-size:13px;font-weight:500;color:var(--ink);}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.event-pill{
+  background:#F5E6D0;color:#7A4A10;border:1px solid #EAC890;
+  font-size:9px;font-weight:500;padding:3px 9px;border-radius:20px;
+}
+.user-avatar{
+  width:28px;height:28px;background:#F5E0E5;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:500;color:var(--maroon);cursor:pointer;
+}
+.sync-pill{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--muted);}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#4CAF50;flex-shrink:0;}
 .sync-dot.synced{background:#4CAF50;}
-.sync-dot.syncing{background:var(--saffron);animation:pulse 0.8s infinite;}
-.sync-dot.offline{background:#F44336;}
+.sync-dot.syncing{background:var(--gold);animation:pulse 0.8s infinite;}
+.sync-dot.offline{background:var(--danger);}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
 
-/* ── TABS ────────────────────────────────────────────────────── */
-.tabs{display:flex;background:var(--cream);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:64px;z-index:99;}
-.tabs::-webkit-scrollbar{display:none;}
-.tab{padding:14px 24px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.2s;flex-shrink:0;}
-.tab:hover{color:var(--ink);}
-.tab.active{color:var(--saffron);border-bottom-color:var(--saffron);font-weight:600;}
+/* ── MAIN WRAPPER ────────────────────────────────────────────── */
+.main{margin-left:54px;display:flex;flex-direction:column;min-height:100vh;}
+
+/* ── MOBILE HEADER ───────────────────────────────────────────── */
+.mobile-header{
+  display:none;background:var(--maroon);
+  padding:11px 16px;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.mobile-brand{font-size:15px;font-weight:500;color:var(--gold);}
+.mobile-sync{display:flex;align-items:center;gap:6px;}
+
+/* ── MOBILE BOTTOM NAV ───────────────────────────────────────── */
+.mobile-nav{
+  display:none;position:fixed;bottom:0;left:0;right:0;
+  background:var(--surface);border-top:1px solid var(--border);z-index:100;
+}
+.mobile-nav-inner{display:grid;height:54px;}
+.mob-item{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;gap:2px;
+}
+.mob-item .ti{font-size:16px;color:#B09090;}
+.mob-lbl{font-size:7px;color:#B09090;font-weight:500;}
+.mob-item.active .ti,.mob-item.active .mob-lbl{color:var(--maroon);}
 
 /* ── VIEWS ───────────────────────────────────────────────────── */
-.view{display:none;padding:24px;max-width:1200px;margin:0 auto;}
+.view{display:none;padding:16px;}
 .view.active{display:block;}
 
-/* ── KPI GRID ────────────────────────────────────────────────── */
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:28px;}
-.kpi{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px;text-align:center;box-shadow:0 2px 12px var(--shadow);transition:transform 0.15s;}
-.kpi:hover{transform:translateY(-2px);}
-.kpi-value{font-family:'Inter',sans-serif;font-size:38px;font-weight:800;line-height:1;margin-bottom:6px;letter-spacing:-1px;font-variant-numeric:tabular-nums;}
-.kpi-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);}
-.kpi.booked .kpi-value{color:var(--teal);}
-.kpi.available .kpi-value{color:var(--sky);}
-.kpi.cleared .kpi-value{color:var(--cleared);}
-.kpi.partial .kpi-value{color:var(--partial);}
-.kpi.pending .kpi-value{color:var(--pending);}
+/* ── SECTION TITLE ───────────────────────────────────────────── */
+.section-title{font-size:15px;font-weight:500;margin-bottom:12px;color:var(--ink);}
 
-/* ── SECTION TITLES ──────────────────────────────────────────── */
-.section-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:16px;color:var(--ink);}
+/* ── OLD KPI GRID (hidden, kept for JS compat) ───────────────── */
+.kpi-grid{display:none;}
+
+/* ── NEW DASHBOARD KPI CARDS ─────────────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 13px;}
+.kpi-card-lbl{font-size:10px;color:var(--muted);letter-spacing:0.02em;margin-bottom:3px;}
+.kpi-card-val{font-size:20px;font-weight:500;color:var(--ink);line-height:1.2;font-variant-numeric:tabular-nums;}
+.kpi-card-val.danger{color:var(--danger);}
+.kpi-card-denom{font-size:13px;font-weight:400;color:var(--muted);}
+.kpi-card-sub{font-size:9px;margin-top:2px;color:var(--warn);}
+.kpi-card-sub.danger{color:var(--danger);}
 
 /* ── FINANCE CARDS ───────────────────────────────────────────── */
 .finance-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px;}
 .finance-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;box-shadow:0 2px 8px var(--shadow);}
 .finance-card .label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.7px;color:var(--muted);margin-bottom:6px;}
-.finance-card .amount{font-family:'Inter',sans-serif;font-size:26px;font-weight:800;letter-spacing:-0.5px;font-variant-numeric:tabular-nums;}
+.finance-card .amount{font-family:inherit;font-size:26px;font-weight:800;letter-spacing:-0.5px;font-variant-numeric:tabular-nums;}
 .finance-card.total .amount{color:var(--ink);}
 .finance-card.collected .amount{color:var(--cleared);}
 .finance-card.outstanding .amount{color:var(--pending);}
@@ -74,7 +143,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .zone-card.city{background:var(--city-bg);border-color:#a8c4e8;}
 .zone-card.passage{background:var(--passage-bg);border-color:#e8a8a8;}
 .zone-name{font-weight:600;font-size:14px;}
-.zone-count{font-family:'Inter',sans-serif;font-size:30px;font-weight:800;letter-spacing:-1px;font-variant-numeric:tabular-nums;}
+.zone-count{font-family:inherit;font-size:30px;font-weight:800;letter-spacing:-1px;font-variant-numeric:tabular-nums;}
 .zone-card.food .zone-count{color:var(--food);}
 .zone-card.grand .zone-count{color:var(--grand);}
 .zone-card.city .zone-count{color:var(--city);}
@@ -96,7 +165,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .stall.booked{background:#C8C8C8!important;border-color:#888!important;color:#555!important;opacity:0.7;}
 .stall.disabled{background:#1a1a1a!important;border-color:#000!important;color:#555!important;cursor:not-allowed!important;opacity:0.55;}
 .stall.disabled:hover{transform:none!important;box-shadow:none!important;}
-.stall.selected{transform:scale(1.1);z-index:20;box-shadow:0 0 0 3px var(--saffron),0 4px 20px rgba(232,114,12,0.4);}
+.stall.selected{transform:scale(1.1);z-index:20;box-shadow:0 0 0 3px var(--maroon),0 4px 20px rgba(107,27,42,0.4);}
 .map-label{position:absolute;font-size:10px;font-weight:700;color:#fff;background:var(--ink);padding:3px 8px;border-radius:4px;letter-spacing:0.5px;}
 
 /* ── DETAIL PANEL ────────────────────────────────────────────── */
@@ -104,7 +173,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .detail-panel.open{display:flex;flex-direction:column;}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
 .panel-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--cream);position:sticky;top:0;z-index:10;}
-.panel-stall-id{font-family:'Inter',sans-serif;font-size:30px;font-weight:800;color:var(--ink);letter-spacing:-1px;}
+.panel-stall-id{font-family:inherit;font-size:30px;font-weight:800;color:var(--ink);letter-spacing:-1px;}
 .panel-zone-badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;}
 .badge-food{background:var(--food-bg);color:var(--food);}
 .badge-grand{background:var(--grand-bg);color:var(--grand);}
@@ -136,18 +205,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .booking-form{display:grid;gap:14px;}
 .form-group{display:grid;gap:6px;}
 .form-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);}
-.form-input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;background:#fff;outline:none;transition:border-color 0.2s;}
-.form-input:focus{border-color:var(--saffron);box-shadow:0 0 0 3px rgba(232,114,12,0.1);}
+.form-input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;background:#fff;outline:none;transition:border-color 0.2s;}
+.form-input:focus{border-color:var(--maroon);box-shadow:0 0 0 3px rgba(107,27,42,0.1);}
 .form-input.error{border-color:var(--rose);}
-.num-input{font-family:'Inter',sans-serif;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-0.2px;}
+.num-input{font-family:inherit;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-0.2px;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.due-display{padding:10px 14px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:700;color:var(--pending);font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-0.2px;}
+.due-display{padding:10px 14px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:700;color:var(--pending);font-family:inherit;font-variant-numeric:tabular-nums;letter-spacing:-0.2px;}
 
 /* ── BUTTONS ─────────────────────────────────────────────────── */
-.btn-book{width:100%;padding:14px;background:var(--saffron);color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;margin-top:4px;}
+.btn-book{width:100%;padding:14px;background:var(--maroon);color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;margin-top:4px;}
 .btn-book:hover:not(:disabled){background:#d4620a;transform:translateY(-1px);}
 .btn-book:disabled{background:#aaa;cursor:not-allowed;transform:none;}
-.btn-secondary{width:100%;padding:11px;background:#fff;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;margin-top:8px;}
+.btn-secondary{width:100%;padding:11px;background:#fff;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;margin-top:8px;}
 .btn-teal{color:var(--teal);border:1.5px solid var(--teal);}
 .btn-teal:hover{background:var(--grand-bg);}
 .btn-green{background:var(--teal);color:#fff;border:none;font-size:14px;font-weight:700;padding:12px;}
@@ -158,11 +227,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .btn-grey{background:#888;color:#fff;border:none;}
 
 /* ── SEARCH + BOOKING CARDS ──────────────────────────────────── */
-.search-bar{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;margin-bottom:16px;outline:none;transition:border-color 0.2s;}
-.search-bar:focus{border-color:var(--saffron);}
+.search-bar{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;margin-bottom:16px;outline:none;transition:border-color 0.2s;}
+.search-bar:focus{border-color:var(--maroon);}
 .booking-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;cursor:pointer;transition:all 0.2s;box-shadow:0 1px 6px var(--shadow);}
-.booking-card:hover{border-color:var(--saffron);transform:translateY(-1px);box-shadow:0 4px 16px var(--shadow);}
-.bc-stall{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-size:14px;font-weight:800;letter-spacing:-0.3px;}
+.booking-card:hover{border-color:var(--maroon);transform:translateY(-1px);box-shadow:0 4px 16px var(--shadow);}
+.bc-stall{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:inherit;font-size:14px;font-weight:800;letter-spacing:-0.3px;}
 .bc-stall.food{background:var(--food-bg);color:var(--food);}
 .bc-stall.grand{background:var(--grand-bg);color:var(--grand);}
 .bc-stall.city{background:var(--city-bg);color:var(--city);}
@@ -189,11 +258,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .success-card{background:#fff;border-radius:24px;padding:36px 32px;max-width:380px;width:100%;text-align:center;animation:scaleIn 0.3s cubic-bezier(0.34,1.56,0.64,1);}
 @keyframes scaleIn{from{transform:scale(0.5);opacity:0;}to{transform:scale(1);opacity:1;}}
 .success-icon{width:80px;height:80px;border-radius:50%;background:var(--cleared-bg);display:flex;align-items:center;justify-content:center;font-size:48px;margin:0 auto 20px;}
-.success-title{font-family:'Playfair Display',serif;font-size:24px;font-weight:900;color:var(--ink);margin-bottom:8px;}
+.success-title{font-family:inherit;font-size:24px;font-weight:900;color:var(--ink);margin-bottom:8px;}
 .success-stall{display:inline-block;background:var(--ink);color:#fff;padding:4px 12px;border-radius:8px;font-weight:700;font-size:14px;margin-bottom:14px;}
 .success-detail{font-size:14px;color:var(--muted);margin-bottom:24px;line-height:1.5;}
 .success-detail strong{color:var(--ink);}
-.success-close{background:var(--saffron);color:#fff;border:none;padding:12px 32px;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:background 0.2s;}
+.success-close{background:var(--maroon);color:#fff;border:none;padding:12px 32px;border-radius:10px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;transition:background 0.2s;}
 .success-close:hover{background:#d4620a;}
 
 /* ── OVERLAY ─────────────────────────────────────────────────── */
@@ -205,35 +274,35 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 /* ── PASSCODE WALL ───────────────────────────────────────────── */
 .passcode-wall{position:fixed;inset:0;background:linear-gradient(160deg,#1A1A2E 0%,#0F3460 60%,#16213E 100%);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:24px;}
 .passcode-wall.hidden{display:none;}
-.passcode-logo{font-family:'Playfair Display',serif;font-size:36px;font-weight:900;color:#fff;margin-bottom:6px;text-align:center;}
-.passcode-logo span{color:var(--saffron);}
+.passcode-logo{font-family:inherit;font-size:36px;font-weight:900;color:#fff;margin-bottom:6px;text-align:center;}
+.passcode-logo span{color:var(--maroon);}
 .passcode-sub{font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:40px;text-align:center;}
 .passcode-box{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:32px 28px;width:100%;max-width:340px;text-align:center;backdrop-filter:blur(10px);}
 .passcode-label{font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;}
 .passcode-dots{display:flex;justify-content:center;gap:14px;margin-bottom:28px;}
 .passcode-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);background:transparent;transition:all 0.15s;}
-.passcode-dot.filled{background:var(--saffron);border-color:var(--saffron);transform:scale(1.1);}
+.passcode-dot.filled{background:var(--maroon);border-color:var(--maroon);transform:scale(1.1);}
 .passcode-dot.error{background:var(--rose);border-color:var(--rose);}
 .passcode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-.passcode-key{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:18px 10px;font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;cursor:pointer;user-select:none;transition:all 0.15s;}
+.passcode-key{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:18px 10px;font-family:inherit;font-size:22px;font-weight:700;color:#fff;cursor:pointer;user-select:none;transition:all 0.15s;}
 .passcode-key:hover{background:rgba(255,255,255,0.15);}
 .passcode-key:active{transform:scale(0.94);background:rgba(255,255,255,0.2);}
-.passcode-key.del{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:rgba(255,255,255,0.5);}
+.passcode-key.del{font-family:inherit;font-size:14px;font-weight:600;color:rgba(255,255,255,0.5);}
 .passcode-error{margin-top:16px;font-size:13px;color:var(--rose);min-height:20px;font-weight:500;}
 
 /* ── ADMIN PORTAL ────────────────────────────────────────────── */
-.admin-header{background:linear-gradient(135deg,#1A1A2E,#0F3460);color:#fff;border-radius:16px;padding:24px 28px;margin-bottom:28px;box-shadow:0 4px 20px var(--shadow);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
-.admin-header-title{font-family:'Playfair Display',serif;font-size:24px;font-weight:900;letter-spacing:-0.5px;}
+.admin-header{background:var(--maroon);color:#fff;border-radius:8px;padding:24px 28px;margin-bottom:28px;box-shadow:0 4px 20px var(--shadow);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.admin-header-title{font-family:inherit;font-size:24px;font-weight:900;letter-spacing:-0.5px;}
 .admin-header-sub{font-size:13px;color:rgba(255,255,255,0.6);margin-top:4px;}
-.admin-exit-btn{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);padding:8px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:background 0.2s;}
+.admin-exit-btn{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);padding:8px 16px;border-radius:8px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;transition:background 0.2s;}
 .admin-exit-btn:hover{background:rgba(255,255,255,0.2);}
 .admin-section{margin-bottom:28px;}
-.admin-section-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:12px;color:var(--ink);display:flex;align-items:center;gap:8px;}
+.admin-section-title{font-family:inherit;font-size:18px;font-weight:700;margin-bottom:12px;color:var(--ink);display:flex;align-items:center;gap:8px;}
 .admin-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 2px 10px var(--shadow);}
 .admin-form-row{display:grid;gap:10px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border);}
 .admin-form-row.cap{grid-template-columns:1fr 180px 110px;}
 .admin-form-row.exp{grid-template-columns:180px 1fr 160px 110px;}
-.admin-add-btn{border:none;border-radius:8px;font-weight:600;font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;color:#fff;padding:10px 18px;transition:opacity 0.2s;}
+.admin-add-btn{border:none;border-radius:8px;font-weight:600;font-family:inherit;font-size:14px;cursor:pointer;color:#fff;padding:10px 18px;transition:opacity 0.2s;}
 .admin-add-btn:hover{opacity:0.9;}
 .admin-add-btn:disabled{opacity:0.5;cursor:not-allowed;}
 .admin-add-btn.teal{background:var(--teal);}
@@ -245,7 +314,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .admin-entry-date{font-size:11px;color:var(--muted);}
 .admin-entry-cat{font-size:11px;font-weight:600;background:var(--cream);padding:4px 10px;border-radius:6px;text-align:center;display:inline-block;}
 .admin-entry-desc{font-weight:500;color:var(--ink);}
-.admin-entry-amt{text-align:right;font-weight:700;font-family:'Inter',sans-serif;font-size:15px;letter-spacing:-0.3px;font-variant-numeric:tabular-nums;}
+.admin-entry-amt{text-align:right;font-weight:700;font-family:inherit;font-size:15px;letter-spacing:-0.3px;font-variant-numeric:tabular-nums;}
 .admin-entry-amt.teal{color:var(--teal);}
 .admin-entry-amt.rose{color:var(--rose);}
 .admin-entry-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px;border-radius:4px;transition:all 0.2s;}
@@ -255,7 +324,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 /* ── P&L KPIS ────────────────────────────────────────────────── */
 .pl-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;}
 .pl-kpi{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px;text-align:center;box-shadow:0 2px 8px var(--shadow);}
-.pl-kpi-value{font-family:'Inter',sans-serif;font-size:24px;font-weight:800;line-height:1.1;margin-bottom:4px;letter-spacing:-0.5px;font-variant-numeric:tabular-nums;}
+.pl-kpi-value{font-family:inherit;font-size:24px;font-weight:800;line-height:1.1;margin-bottom:4px;letter-spacing:-0.5px;font-variant-numeric:tabular-nums;}
 .pl-kpi-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);}
 
 /* ── BREAKDOWN BARS ──────────────────────────────────────────── */
@@ -269,7 +338,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 
 /* ── STALL MANAGEMENT GRID ───────────────────────────────────── */
 .stall-mgmt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px;margin-top:4px;}
-.stall-mgmt-btn{padding:8px 4px;border-radius:8px;border:2px solid transparent;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-align:center;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.stall-mgmt-btn{padding:8px 4px;border-radius:8px;border:2px solid transparent;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;text-align:center;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;gap:3px;}
 .stall-mgmt-btn.active-food{background:var(--food-bg);border-color:#E8A800;color:#7A4A00;}
 .stall-mgmt-btn.active-grand{background:var(--grand-bg);border-color:#2A8A50;color:#0A4A20;}
 .stall-mgmt-btn.active-city{background:var(--city-bg);border-color:#2060A8;color:#0A2860;}
@@ -278,7 +347,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .stall-mgmt-btn .mgmt-status{font-size:9px;font-weight:600;opacity:0.7;}
 
 /* ── HOLD-TO-CONFIRM BUTTON ──────────────────────────────────── */
-.hold-btn{position:relative;width:100%;padding:18px;background:var(--rose);color:#fff;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
+.hold-btn{position:relative;width:100%;padding:18px;background:var(--rose);color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
 .hold-btn .hold-fill{position:absolute;inset:0;background:rgba(0,0,0,0.25);width:0%;transition:width 0.1s linear;pointer-events:none;}
 .hold-btn .hold-label{position:relative;z-index:2;}
 .hold-btn:disabled{opacity:0.6;cursor:not-allowed;}
@@ -286,50 +355,41 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 
 /* ── MOBILE ──────────────────────────────────────────────────── */
 @media(max-width:820px){
-  body{font-size:16px;}
-  .header{padding:0 12px;height:54px;}
-  .logo{font-size:19px;}
-  .tabs{top:54px;}
-  .tab{padding:14px 16px;font-size:14px;font-weight:600;flex:1;text-align:center;min-height:48px;display:flex;align-items:center;justify-content:center;}
-  .view{padding:14px 12px 32px;max-width:100%;}
-  .section-title{font-size:19px;margin-bottom:12px;}
-  .kpi-grid{grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;}
-  .kpi{padding:14px 6px;border-radius:14px;}
-  .kpi-value{font-size:28px;margin-bottom:4px;}
-  .kpi-label{font-size:10px;}
-  .finance-row{grid-template-columns:1fr;gap:10px;margin-bottom:22px;}
-  .zone-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
-  .zone-count{font-size:32px;}
-  .map-container{padding:6px;border-radius:12px;}
+  .sidebar{display:none;}
+  .main{margin-left:0;}
+  .topbar{display:none;}
+  .mobile-header{display:flex;}
+  .mobile-nav{display:block;}
+  .view{padding:10px 12px 70px;}
+  #dash-grid{grid-template-columns:1fr!important;}
+  .kpi-row{grid-template-columns:1fr 1fr;}
+  .kpi-row .kpi-card:first-child{grid-column:span 2;}
+  .map-container{padding:6px;border-radius:8px;}
   .floor-map{transform-origin:top left;}
-  .search-bar{padding:14px 16px;font-size:15px;}
-  .booking-card{padding:14px;gap:12px;border-radius:14px;}
-  .bc-stall{width:52px;height:52px;font-size:15px;}
-  .bc-name{font-size:15px;font-weight:700;}
+  .search-bar{padding:12px 14px;font-size:15px;min-height:44px;}
+  .booking-card{padding:12px 13px;gap:10px;}
+  .bc-stall{width:42px;height:42px;}
+  .bc-name{font-size:14px;}
   .detail-panel{width:100vw;}
-  .panel-header{padding:16px;}
-  .panel-body{padding:16px;}
-  .form-input{padding:14px 14px;font-size:16px;min-height:48px;}
-  .btn-book{padding:16px;font-size:16px;min-height:52px;}
-  .btn-secondary{padding:14px;font-size:14px;min-height:48px;}
-  .admin-header{padding:20px 18px;margin-bottom:20px;border-radius:14px;}
-  .admin-header-title{font-size:22px;}
-  .admin-form-row.cap,.admin-form-row.exp{grid-template-columns:1fr!important;gap:10px;margin-bottom:18px;}
-  .admin-add-btn{padding:14px 18px;font-size:15px;min-height:50px;}
-  .admin-entry.cap,.admin-entry.exp{grid-template-columns:1fr 40px!important;}
-  .pl-kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
-  .pl-kpi-value{font-size:22px!important;}
+  .panel-header{padding:14px 16px;}
+  .panel-body{padding:14px 16px;}
+  .form-input{padding:12px 12px;font-size:16px;min-height:44px;}
+  .btn-book{padding:14px;font-size:15px;min-height:48px;}
+  .btn-secondary{padding:12px;font-size:13px;min-height:44px;}
+  .admin-header{padding:16px;margin-bottom:16px;}
+  .admin-form-row.cap,.admin-form-row.exp{grid-template-columns:1fr!important;gap:8px;}
+  .admin-entry.cap,.admin-entry.exp{grid-template-columns:1fr 32px!important;}
+  .pl-kpi-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
   .success-modal{padding:14px;}
-  .success-card{padding:28px 22px;border-radius:20px;}
-  .toast{font-size:14px;padding:14px 20px;bottom:18px;max-width:92vw;border-radius:12px;}
+  .success-card{padding:24px 20px;}
+  .toast{font-size:13px;padding:12px 18px;bottom:64px;max-width:92vw;}
   .passcode-wall{padding:20px;}
-  .passcode-logo{font-size:32px;}
-  .passcode-key{padding:22px 10px;font-size:22px;border-radius:14px;min-height:60px;}
+  .passcode-logo{font-size:28px;}
+  .passcode-key{padding:18px 8px;font-size:20px;min-height:56px;}
 }
 @media(max-width:380px){
-  .tab{padding:12px 8px;font-size:12px;}
-  .kpi-value{font-size:24px;}
-  .bc-stall{width:46px;height:46px;font-size:13px;}
+  .kpi-card-val{font-size:16px;}
+  .bc-stall{width:38px;height:38px;font-size:11px;}
 }
 </style>
 </head>
@@ -365,54 +425,138 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
   </div>
 </div>
 
-<!-- HEADER -->
-<header class="header">
-  <div style="display:flex;align-items:center">
-    <div class="logo">Fest <span>بازار</span></div>
-    <div class="logo-version">v4.0-standalone</div>
-  </div>
-  <div style="display:flex;align-items:center;gap:14px">
-    <div class="sync-status">
-      <div class="sync-dot syncing" id="syncDot"></div>
-      <span id="syncLabel">Connecting...</span>
+<!-- ═══════════ SIDEBAR (desktop) ═══════════ -->
+<aside class="sidebar">
+  <div class="sb-logo">FB</div>
+  <nav class="sb-nav">
+    <div class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+      <i class="ti ti-layout-dashboard"></i>
+      <span class="nav-item-lbl">Home</span>
     </div>
-    <button onclick="logoutUser()" style="background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.15);padding:7px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:12px;cursor:pointer;transition:all 0.2s">🔓 Logout</button>
+    <div class="nav-item" data-tab="map" onclick="switchTab('map')">
+      <i class="ti ti-map"></i>
+      <span class="nav-item-lbl">Map</span>
+    </div>
+    <div class="nav-item" data-tab="bookings" onclick="switchTab('bookings')">
+      <i class="ti ti-users"></i>
+      <span class="nav-item-lbl">Vendors</span>
+    </div>
+    <div class="nav-item" data-tab="reminders" onclick="switchTab('reminders')">
+      <i class="ti ti-receipt"></i>
+      <span class="nav-item-lbl">Pay</span>
+    </div>
+    <div class="nav-item" data-tab="admin" id="tab-admin" onclick="switchTab('admin')" style="display:none">
+      <i class="ti ti-lock"></i>
+      <span class="nav-item-lbl">Admin</span>
+    </div>
+  </nav>
+  <div class="sb-sep"></div>
+  <div class="sb-bottom">
+    <div class="nav-item" onclick="logoutUser()" title="Logout">
+      <i class="ti ti-power" style="color:#C08090;font-size:17px"></i>
+      <span class="nav-item-lbl">Logout</span>
+    </div>
   </div>
-</header>
+</aside>
 
-<!-- TABS -->
-<nav class="tabs">
-  <div class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</div>
-  <div class="tab" onclick="switchTab('map')">🗺 Floor Map</div>
-  <div class="tab" onclick="switchTab('bookings')">📋 Bookings</div>
-  <div class="tab" onclick="switchTab('reminders')">💬 Reminders</div>
-  <div class="tab admin-only" id="tab-admin" onclick="switchTab('admin')" style="display:none">🔐 Admin</div>
-</nav>
+<!-- ═══════════ MAIN ═══════════ -->
+<div class="main">
 
-<!-- DASHBOARD VIEW -->
-<div class="view active" id="view-dashboard">
-  <div class="kpi-grid">
-    <div class="kpi"><div class="kpi-value" id="kpi-total">—</div><div class="kpi-label">Total Stalls</div></div>
-    <div class="kpi booked"><div class="kpi-value" id="kpi-booked">—</div><div class="kpi-label">Booked</div></div>
-    <div class="kpi available"><div class="kpi-value" id="kpi-available">—</div><div class="kpi-label">Available</div></div>
-    <div class="kpi cleared"><div class="kpi-value" id="kpi-cleared">—</div><div class="kpi-label">Cleared</div></div>
-    <div class="kpi partial"><div class="kpi-value" id="kpi-partial">—</div><div class="kpi-label">Partial</div></div>
-    <div class="kpi pending"><div class="kpi-value" id="kpi-pending">—</div><div class="kpi-label">Pending</div></div>
+  <!-- Mobile header -->
+  <div class="mobile-header">
+    <span class="mobile-brand">Fest بازار</span>
+    <div class="mobile-sync">
+      <div class="sync-pill" style="color:rgba(255,255,255,0.5)">
+        <div class="sync-dot syncing" id="syncDot"></div>
+        <span id="syncLabel" style="font-size:9px">Connecting...</span>
+      </div>
+      <div class="user-avatar" onclick="logoutUser()" title="Logout" style="background:rgba(255,255,255,0.15);color:#fff;width:26px;height:26px;font-size:8px">FB</div>
+    </div>
   </div>
-  <div class="section-title">Financial Overview</div>
-  <div class="finance-row">
-    <div class="finance-card total"><div class="label">Total Expected</div><div class="amount" id="fin-total">—</div></div>
-    <div class="finance-card collected"><div class="label">Collected</div><div class="amount" id="fin-collected">—</div></div>
-    <div class="finance-card outstanding"><div class="label">Outstanding</div><div class="amount" id="fin-outstanding">—</div></div>
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <span class="topbar-title" id="page-title">Dashboard</span>
+    <div class="topbar-right">
+      <div class="sync-pill">
+        <div class="sync-dot syncing" id="syncDot2"></div>
+        <span id="syncLabel2" style="font-size:9px">Connecting...</span>
+      </div>
+      <div class="event-pill">Fest Bazaar 2026</div>
+      <div class="user-avatar" onclick="logoutUser()" title="Logout">FB</div>
+    </div>
   </div>
-  <div class="section-title">Bookings by Zone</div>
-  <div class="zone-grid">
-    <div class="zone-card food"><div><div class="zone-name">🍜 Food Stalls</div><div style="font-size:11px;color:var(--muted);margin-top:2px">F1–F15</div></div><div class="zone-count" id="zone-food">—</div></div>
-    <div class="zone-card grand"><div><div class="zone-name">🌳 Grand Tree</div><div style="font-size:11px;color:var(--muted);margin-top:2px">G1–G26</div></div><div class="zone-count" id="zone-grand">—</div></div>
-    <div class="zone-card city"><div><div class="zone-name">🏙 City Arena</div><div style="font-size:11px;color:var(--muted);margin-top:2px">C1–C35</div></div><div class="zone-count" id="zone-city">—</div></div>
-    <div class="zone-card passage"><div><div class="zone-name">🚶 Passage</div><div style="font-size:11px;color:var(--muted);margin-top:2px">P1–P6</div></div><div class="zone-count" id="zone-passage">—</div></div>
+
+  <!-- ═══════════ VIEWS ═══════════ -->
+
+  <!-- DASHBOARD VIEW -->
+  <div class="view active" id="view-dashboard">
+    <!-- 3 KPI Cards -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-card-lbl">Revenue</div>
+        <div class="kpi-card-val" id="kpi-revenue">₨ 0</div>
+        <div class="kpi-card-sub" id="kpi-revenue-sub">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card-lbl">Stalls filled</div>
+        <div class="kpi-card-val"><span id="kpi-booked">0</span><span class="kpi-card-denom"> / <span id="kpi-total">—</span></span></div>
+        <div class="kpi-card-sub" id="kpi-capacity-sub">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card-lbl">Payments due</div>
+        <div class="kpi-card-val danger" id="kpi-due-amount">₨ 0</div>
+        <div class="kpi-card-sub danger" id="kpi-due-sub">—</div>
+      </div>
+    </div>
+
+    <!-- Two-panel grid -->
+    <div id="dash-grid" style="display:grid;grid-template-columns:5fr 6fr;gap:10px;margin-top:10px;">
+      <!-- Left: Occupancy -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px;">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:0.02em;margin-bottom:10px;">Stall occupancy</div>
+        <div style="height:8px;background:#F0E4DE;border-radius:4px;overflow:hidden;display:flex;margin-bottom:10px;">
+          <div id="occ-bar-cleared" style="background:var(--maroon);height:100%;width:0%;transition:width 0.5s;"></div>
+          <div id="occ-bar-partial" style="background:var(--gold);height:100%;width:0%;transition:width 0.5s;"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:2px;background:var(--maroon);flex-shrink:0;"></div>
+            <span style="font-size:10px;color:var(--muted);flex:1;">Cleared</span>
+            <span style="font-size:11px;font-weight:500;color:var(--ink);" id="occ-n-cleared">0</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:2px;background:var(--gold);flex-shrink:0;"></div>
+            <span style="font-size:10px;color:var(--muted);flex:1;">Partial / Pending</span>
+            <span style="font-size:11px;font-weight:500;color:var(--ink);" id="occ-n-partial">0</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:2px;background:#E8DDD8;flex-shrink:0;"></div>
+            <span style="font-size:10px;color:var(--muted);flex:1;">Available</span>
+            <span style="font-size:11px;font-weight:500;color:var(--ink);" id="occ-n-avail">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Recent payments -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px;">
+        <div id="dash-pay-alert" style="display:none;background:#FFF8EE;border:1px solid #F0D090;border-radius:6px;padding:7px 10px;margin-bottom:10px;font-size:9px;color:#7A5010;align-items:center;gap:6px;">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0;"></div>
+          <span id="dash-pay-alert-txt"></span>
+        </div>
+        <div id="dash-pay-list"></div>
+      </div>
+    </div>
+
+    <!-- Hidden legacy IDs for JS compatibility -->
+    <div style="display:none;">
+      <span id="kpi-available"></span><span id="kpi-cleared"></span>
+      <span id="kpi-partial"></span><span id="kpi-pending"></span>
+      <span id="fin-total"></span><span id="fin-collected"></span><span id="fin-outstanding"></span>
+      <span id="zone-food"></span><span id="zone-grand"></span>
+      <span id="zone-city"></span><span id="zone-passage"></span>
+    </div>
   </div>
-</div>
 
 <!-- MAP VIEW -->
 <div class="view" id="view-map">
@@ -508,7 +652,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
   <div class="admin-section">
     <div class="admin-section-title" style="cursor:pointer;user-select:none;justify-content:space-between;display:flex;align-items:center" onclick="toggleStallMgmt()">
       <span>🚫 Stall Management</span>
-      <span id="stall-mgmt-arrow" style="font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:500">▼ Show</span>
+      <span id="stall-mgmt-arrow" style="font-size:13px;color:var(--muted);font-family:inherit;font-weight:500">▼ Show</span>
     </div>
     <div class="admin-card" id="stall-mgmt-panel" style="display:none">
       <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5">
@@ -528,7 +672,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
   <div class="admin-section">
     <div class="admin-section-title" style="color:var(--rose)">⚠️ Danger Zone</div>
     <div class="admin-card" style="border:2px solid var(--rose);background:linear-gradient(180deg,#fff,#FDEAEA);">
-      <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--rose);margin-bottom:6px">Reset for Next Event</div>
+      <div style="font-family:inherit;font-size:17px;font-weight:700;color:var(--rose);margin-bottom:6px">Reset for Next Event</div>
       <div style="font-size:13px;color:var(--ink);line-height:1.6;margin-bottom:14px">
         Clears all current bookings, capital entries, and expenses. <strong>Past archives are kept permanently.</strong>
       </div>
@@ -546,9 +690,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 <!-- ARCHIVE DETAIL MODAL -->
 <div class="success-modal" id="archiveModal">
   <div class="success-card" style="max-width:720px;padding:0;text-align:left;max-height:88vh;overflow-y:auto;width:100%">
-    <div style="background:linear-gradient(135deg,#1A1A2E,#0F3460);color:#fff;padding:24px 28px;border-radius:24px 24px 0 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:10">
+    <div style="background:var(--maroon);color:#fff;padding:20px 24px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:10">
       <div>
-        <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:900" id="archModalName">Event</div>
+        <div style="font-family:inherit;font-size:22px;font-weight:900" id="archModalName">Event</div>
         <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:4px" id="archModalDate"></div>
       </div>
       <button onclick="closeArchiveModal()" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);padding:8px 14px;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif">✕ Close</button>
@@ -590,6 +734,29 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+</div><!-- /.main -->
+
+<!-- ═══════════ MOBILE BOTTOM NAV ═══════════ -->
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner" id="mob-nav-inner" style="grid-template-columns:repeat(4,1fr);">
+    <div class="mob-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+      <i class="ti ti-layout-dashboard"></i><span class="mob-lbl">Home</span>
+    </div>
+    <div class="mob-item" data-tab="map" onclick="switchTab('map')">
+      <i class="ti ti-map"></i><span class="mob-lbl">Map</span>
+    </div>
+    <div class="mob-item" data-tab="bookings" onclick="switchTab('bookings')">
+      <i class="ti ti-users"></i><span class="mob-lbl">Vendors</span>
+    </div>
+    <div class="mob-item" data-tab="reminders" onclick="switchTab('reminders')">
+      <i class="ti ti-receipt"></i><span class="mob-lbl">Pay</span>
+    </div>
+    <div class="mob-item" data-tab="admin" id="tab-admin-mob" onclick="switchTab('admin')" style="display:none">
+      <i class="ti ti-lock"></i><span class="mob-lbl">Admin</span>
+    </div>
+  </div>
+</nav>
 
 <script>
 // ═══════════════════════════════════════════════════════════════
@@ -736,25 +903,27 @@ async function syncFromSheet(showStatus){
 }
 
 function setSyncStatus(state){
-  var dot=document.getElementById('syncDot');
-  var lbl=document.getElementById('syncLabel');
-  if(!dot) return;
-  dot.className='sync-dot '+state;
-  if(state==='synced') lbl.textContent='Synced';
-  else if(state==='syncing') lbl.textContent='Syncing...';
-  else lbl.textContent='Offline — retrying';
+  // update both mobile (syncDot) and topbar (syncDot2)
+  ['syncDot','syncDot2'].forEach(function(id){
+    var dot=document.getElementById(id);
+    if(dot) dot.className='sync-dot '+state;
+  });
+  var labels={synced:'Synced',syncing:'Syncing...',offline:'Offline'};
+  ['syncLabel','syncLabel2'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.textContent=labels[state]||state;
+  });
 }
 
 setInterval(function(){
   if(lastSyncTime>0 && !pendingSync){
     var sec=Math.floor((Date.now()-lastSyncTime)/1000);
-    var lbl=document.getElementById('syncLabel');
-    var dot=document.getElementById('syncDot');
-    if(lbl && dot && dot.classList.contains('synced')){
-      if(sec<10) lbl.textContent='Synced';
-      else if(sec<60) lbl.textContent='Synced '+sec+'s ago';
-      else lbl.textContent='Synced '+Math.floor(sec/60)+'m ago';
-    }
+    var txt=sec<10?'Synced':sec<60?'Synced '+sec+'s ago':'Synced '+Math.floor(sec/60)+'m ago';
+    ['syncLabel','syncLabel2'].forEach(function(id){
+      var el=document.getElementById(id);
+      var dot=document.getElementById(id==='syncLabel'?'syncDot':'syncDot2');
+      if(el && dot && dot.classList.contains('synced')) el.textContent=txt;
+    });
   }
 },2000);
 
@@ -766,27 +935,45 @@ setInterval(function(){
 // ═══════════════════════════════════════════════════════════════
 // TABS
 // ═══════════════════════════════════════════════════════════════
+var PAGE_TITLES={dashboard:'Dashboard',map:'Floor map',bookings:'Bookings',reminders:'Reminders',admin:'Admin portal'};
+
 function switchTab(tab){
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('[data-tab]').forEach(function(t){t.classList.remove('active');});
   document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
-  document.querySelectorAll('.tab').forEach(function(t){
-    var n=t.textContent.toLowerCase();
-    if((tab==='dashboard'&&n.includes('dashboard'))||
-       (tab==='map'&&n.includes('floor'))||
-       (tab==='bookings'&&n.includes('bookings'))||
-       (tab==='reminders'&&n.includes('reminders'))||
-       (tab==='admin'&&n.includes('admin'))) t.classList.add('active');
-  });
+  document.querySelectorAll('[data-tab="'+tab+'"]').forEach(function(t){t.classList.add('active');});
   document.getElementById('view-'+tab).classList.add('active');
+  var pt=document.getElementById('page-title');
+  if(pt) pt.textContent=PAGE_TITLES[tab]||tab;
   if(tab==='map')       renderMap();
   if(tab==='bookings')  renderBookingsList();
   if(tab==='reminders') renderReminders();
   if(tab==='admin')     loadFinancials();
 }
 
+// Show / hide the admin nav item in both sidebar and mobile nav
+function setAdminTabVisible(visible){
+  var display=visible?'flex':'none';
+  ['tab-admin','tab-admin-mob'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.style.display=display;
+  });
+  // also resize the mobile nav grid when admin tab is added
+  var inner=document.getElementById('mob-nav-inner');
+  if(inner) inner.style.gridTemplateColumns='repeat('+(visible?5:4)+',1fr)';
+}
+
 // ═══════════════════════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════════════════════
+function setEl(id,val){ var e=document.getElementById(id); if(e) e.textContent=val; }
+
+function compactPkr(n){
+  n=Number(n||0);
+  if(n>=100000) return '₨ '+(n/100000).toFixed(1).replace(/\.0$/,'')+'L';
+  if(n>=1000)   return '₨ '+(n/1000).toFixed(1).replace(/\.0$/,'')+'k';
+  return '₨ '+n.toLocaleString('en-PK');
+}
+
 function refreshDashboard(){
   var booked    =bookings.length;
   var cleared   =bookings.filter(function(b){return b.paymentStatus==='cleared';}).length;
@@ -795,21 +982,68 @@ function refreshDashboard(){
   var totalAmt  =bookings.reduce(function(s,b){return s+(b.total||0);},0);
   var collected =bookings.reduce(function(s,b){return s+(b.paid||0);},0);
   var outstanding=bookings.reduce(function(s,b){return s+(b.due||0);},0);
+  var avail     =TOTAL_ACTIVE-booked;
 
-  document.getElementById('kpi-total').textContent     =TOTAL_ACTIVE;
-  document.getElementById('kpi-booked').textContent    =booked;
-  document.getElementById('kpi-available').textContent =TOTAL_ACTIVE-booked;
-  document.getElementById('kpi-cleared').textContent   =cleared;
-  document.getElementById('kpi-partial').textContent   =partial;
-  document.getElementById('kpi-pending').textContent   =pending;
-  document.getElementById('fin-total').textContent     =pkr(totalAmt);
-  document.getElementById('fin-collected').textContent =pkr(collected);
-  document.getElementById('fin-outstanding').textContent=pkr(outstanding);
-
+  // Legacy hidden IDs (still set for any dependent code)
+  setEl('kpi-total',TOTAL_ACTIVE); setEl('kpi-booked',booked);
+  setEl('kpi-available',avail);    setEl('kpi-cleared',cleared);
+  setEl('kpi-partial',partial);    setEl('kpi-pending',pending);
+  setEl('fin-total',pkr(totalAmt));setEl('fin-collected',pkr(collected));
+  setEl('fin-outstanding',pkr(outstanding));
   ['food','grand','city','passage'].forEach(function(z){
-    document.getElementById('zone-'+z).textContent=
-      bookings.filter(function(b){return STALL_DEFS[b.stall]&&STALL_DEFS[b.stall].z===z;}).length;
+    setEl('zone-'+z,bookings.filter(function(b){return STALL_DEFS[b.stall]&&STALL_DEFS[b.stall].z===z;}).length);
   });
+
+  // ── New KPI cards ──────────────────────────────────────────
+  setEl('kpi-revenue', compactPkr(collected));
+  setEl('kpi-revenue-sub', totalAmt>0 ? Math.round(collected/totalAmt*100)+'% of expected collected' : '—');
+  setEl('kpi-capacity-sub', TOTAL_ACTIVE>0 ? Math.round(booked/TOTAL_ACTIVE*100)+'% capacity' : '—');
+  setEl('kpi-due-amount', compactPkr(outstanding));
+  var dueCount=partial+pending;
+  setEl('kpi-due-sub', dueCount>0 ? dueCount+' vendor'+(dueCount===1?'':'s')+' overdue' : 'All clear');
+
+  // ── Occupancy bar ──────────────────────────────────────────
+  var pCleared=TOTAL_ACTIVE>0?(cleared/TOTAL_ACTIVE*100):0;
+  var pPartial=TOTAL_ACTIVE>0?((partial+pending)/TOTAL_ACTIVE*100):0;
+  var barC=document.getElementById('occ-bar-cleared');
+  var barP=document.getElementById('occ-bar-partial');
+  if(barC) barC.style.width=pCleared.toFixed(1)+'%';
+  if(barP) barP.style.width=pPartial.toFixed(1)+'%';
+  setEl('occ-n-cleared',cleared);
+  setEl('occ-n-partial',partial+pending);
+  setEl('occ-n-avail',avail);
+
+  // ── Recent payments panel ──────────────────────────────────
+  renderDashPayments(dueCount);
+}
+
+function renderDashPayments(dueCount){
+  var list=document.getElementById('dash-pay-list');
+  var alertEl=document.getElementById('dash-pay-alert');
+  var alertTxt=document.getElementById('dash-pay-alert-txt');
+  if(!list) return;
+  if(alertEl){
+    alertEl.style.display=dueCount>0?'flex':'none';
+    if(alertTxt) alertTxt.textContent=dueCount+' vendor'+(dueCount===1?'':'s')+' with pending or partial payments';
+  }
+  var show=bookings.slice(0,6);
+  if(!show.length){
+    list.innerHTML='<div style="padding:18px;text-align:center;color:var(--muted);font-size:11px;">No bookings yet</div>';
+    return;
+  }
+  list.innerHTML=show.map(function(b){
+    var init=(b.vendor||'?').trim().split(/\s+/).map(function(w){return w[0]||'';}).join('').substring(0,2).toUpperCase();
+    var sc={cleared:'background:#E8F5EC;color:#246B38',partial:'background:#FEF5E0;color:#7A5810',pending:'background:#FCEAEA;color:#8B2020'}[b.paymentStatus]||'background:#FCEAEA;color:#8B2020';
+    var sl={cleared:'Paid',partial:'Partial',pending:'Pending'}[b.paymentStatus]||'—';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #F5EDE8;">'+
+      '<div style="width:26px;height:26px;background:#F5E0E5;border-radius:50%;font-size:8px;font-weight:500;color:#6B1B2A;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+init+'</div>'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div style="font-size:10px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(b.vendor)+'</div>'+
+        '<div class="pay-sub" style="font-size:9px;color:var(--muted);margin-top:1px;">'+esc(b.stall)+' · '+compactPkr(b.total)+'</div>'+
+      '</div>'+
+      '<span style="padding:2px 8px;border-radius:20px;font-size:9px;font-weight:500;flex-shrink:0;'+sc+'">'+sl+'</span>'+
+    '</div>';
+  }).join('')+'<div style="border-bottom:none"></div>';
 }
 
 function refreshAll(){
@@ -915,8 +1149,8 @@ function openStallPanel(stallId){
         '<div style="display:none;padding:30px;color:var(--muted);font-size:13px">📷 Logo could not load</div>'+
         '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'+
         '<a href="'+esc(booking.logoUrl)+'" target="_blank" style="background:var(--ink);color:#fff;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none">🔍 Full Size</a>'+
-        '<button onclick="triggerLogoReplace(\''+stallId+'\')" style="background:var(--sky);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif">🔄 Replace</button>'+
-        '<button onclick="confirmRemoveLogo(\''+stallId+'\')" style="background:var(--rose);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif">🗑 Remove</button>'+
+        '<button onclick="triggerLogoReplace(\''+stallId+'\')" style="background:var(--sky);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">🔄 Replace</button>'+
+        '<button onclick="confirmRemoveLogo(\''+stallId+'\')" style="background:var(--rose);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">🗑 Remove</button>'+
         '</div></div></div>';
     } else {
       logoSection=
@@ -925,7 +1159,7 @@ function openStallPanel(stallId){
         '<div style="background:var(--cream);border-radius:12px;padding:18px;text-align:center;border:2px dashed var(--border)">'+
         '<div style="font-size:32px;margin-bottom:8px;opacity:0.4">📷</div>'+
         '<div style="font-size:13px;color:var(--muted);margin-bottom:12px">No logo uploaded yet</div>'+
-        '<button onclick="triggerLogoReplace(\''+stallId+'\')" style="background:var(--saffron);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:\'DM Sans\',sans-serif">📎 Add Logo</button>'+
+        '<button onclick="triggerLogoReplace(\''+stallId+'\')" style="background:var(--maroon);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">📎 Add Logo</button>'+
         '</div></div>';
     }
 
@@ -1331,7 +1565,7 @@ async function viewArchivedEvent(eventId){
     '<div class="pl-kpi"><div class="pl-kpi-value" style="color:var(--pending)">'+pkr(s.totalExpenses||0)+'</div><div class="pl-kpi-label">Expenses</div></div>'+
     '<div class="pl-kpi"><div class="pl-kpi-value" style="color:'+pc+'">'+pkr(Math.abs(s.netProfit||0))+'</div><div class="pl-kpi-label">'+((s.netProfit||0)>=0?'Profit':'Loss')+'</div></div>'+
     '</div>';
-  body+='<div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;margin-bottom:10px">📋 Bookings ('+e.bookings.length+')</div>';
+  body+='<div style="font-family:inherit;font-size:16px;font-weight:700;margin-bottom:10px">📋 Bookings ('+e.bookings.length+')</div>';
   if(!e.bookings.length){ body+='<div class="admin-empty">No bookings</div>'; }
   else {
     body+='<div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;margin-bottom:24px">'+
@@ -1346,7 +1580,7 @@ async function viewArchivedEvent(eventId){
       }).join('')+'</div>';
   }
   if(fin.capital&&fin.capital.length>0){
-    body+='<div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;margin-bottom:10px">💼 Capital</div>'+
+    body+='<div style="font-family:inherit;font-size:16px;font-weight:700;margin-bottom:10px">💼 Capital</div>'+
       '<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:24px">'+
       fin.capital.map(function(c){
         return '<div style="display:grid;grid-template-columns:90px 1fr 130px;gap:10px;padding:10px 14px;border-bottom:1px solid var(--cream);align-items:center;font-size:13px">'+
@@ -1356,7 +1590,7 @@ async function viewArchivedEvent(eventId){
       }).join('')+'</div>';
   }
   if(fin.expenses&&fin.expenses.length>0){
-    body+='<div style="font-family:\'Playfair Display\',serif;font-size:16px;font-weight:700;margin-bottom:10px">💸 Expenses</div>'+
+    body+='<div style="font-family:inherit;font-size:16px;font-weight:700;margin-bottom:10px">💸 Expenses</div>'+
       '<div style="border:1px solid var(--border);border-radius:10px">'+
       fin.expenses.map(function(ex){
         return '<div style="display:grid;grid-template-columns:90px 110px 1fr 130px;gap:10px;padding:10px 14px;border-bottom:1px solid var(--cream);align-items:center;font-size:13px">'+
@@ -1401,7 +1635,7 @@ function showResetStep1(){
   var bc=bookings.length, cc=financialsState?financialsState.capital.length:0, ec=financialsState?financialsState.expenses.length:0;
   document.getElementById('resetModalBody').innerHTML=
     '<div style="background:var(--rose);color:#fff;padding:20px 22px;border-radius:0">'+
-      '<div style="font-family:Playfair Display,serif;font-size:20px;font-weight:900">⚠️ Reset Event Data</div>'+
+      '<div style="font-family:inherit;font-size:20px;font-weight:900">⚠️ Reset Event Data</div>'+
       '<div style="font-size:12px;opacity:0.85;margin-top:3px">Step 1 of 3 — Archive Check</div>'+
     '</div>'+
     '<div style="padding:22px">'+archStatus+
@@ -1418,7 +1652,7 @@ function showResetStep1(){
 function goToResetStep2(){
   document.getElementById('resetModalBody').innerHTML=
     '<div style="background:var(--rose);color:#fff;padding:20px 22px;border-radius:0">'+
-      '<div style="font-family:Playfair Display,serif;font-size:20px;font-weight:900">⚠️ Reset Event Data</div>'+
+      '<div style="font-family:inherit;font-size:20px;font-weight:900">⚠️ Reset Event Data</div>'+
       '<div style="font-size:12px;opacity:0.85;margin-top:3px">Step 2 of 3 — Backup</div>'+
     '</div>'+
     '<div style="padding:22px">'+
@@ -1434,7 +1668,7 @@ function goToResetStep3(){
   var bc=bookings.length, cc=financialsState?financialsState.capital.length:0, ec=financialsState?financialsState.expenses.length:0;
   document.getElementById('resetModalBody').innerHTML=
     '<div style="background:var(--rose);color:#fff;padding:20px 22px;border-radius:0">'+
-      '<div style="font-family:Playfair Display,serif;font-size:20px;font-weight:900">⚠️ Final Confirmation</div>'+
+      '<div style="font-family:inherit;font-size:20px;font-weight:900">⚠️ Final Confirmation</div>'+
       '<div style="font-size:12px;opacity:0.85;margin-top:3px">Step 3 of 3 — Hold to confirm</div>'+
     '</div>'+
     '<div style="padding:22px">'+
@@ -1784,13 +2018,13 @@ function checkPasscode(){
     sessionStorage.setItem('fb_auth','1');
     sessionStorage.removeItem('fb_admin');
     document.getElementById('passcodeWall').classList.add('hidden');
-    document.getElementById('tab-admin').style.display='none';
+    setAdminTabVisible(false);
     syncFromSheet(true);
   } else if(pcEntry===ADMIN_PASSCODE){
     sessionStorage.setItem('fb_auth','1');
     sessionStorage.setItem('fb_admin','1');
     document.getElementById('passcodeWall').classList.add('hidden');
-    document.getElementById('tab-admin').style.display='block';
+    setAdminTabVisible(true);
     syncFromSheet(true);
     setTimeout(function(){showToast('🔐 Admin mode active','success');},600);
   } else {
@@ -1805,7 +2039,7 @@ function checkPasscode(){
 
 function logoutAdmin(){
   sessionStorage.removeItem('fb_admin');
-  document.getElementById('tab-admin').style.display='none';
+  setAdminTabVisible(false);
   switchTab('dashboard');
   showToast('🔓 Exited admin mode','');
 }
@@ -1813,7 +2047,7 @@ function logoutAdmin(){
 function logoutUser(){
   sessionStorage.removeItem('fb_auth');
   sessionStorage.removeItem('fb_admin');
-  document.getElementById('tab-admin').style.display='none';
+  setAdminTabVisible(false);
   document.getElementById('passcodeWall').classList.remove('hidden');
   pcEntry=''; updateDots();
   document.getElementById('pcError').textContent='';
@@ -1846,7 +2080,7 @@ document.addEventListener('keydown',function(e){
 if(sessionStorage.getItem('fb_auth')==='1'){
   document.getElementById('passcodeWall').classList.add('hidden');
   if(sessionStorage.getItem('fb_admin')==='1'){
-    document.getElementById('tab-admin').style.display='block';
+    setAdminTabVisible(true);
   }
   syncFromSheet(true);
 } else {
