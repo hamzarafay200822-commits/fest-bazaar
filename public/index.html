@@ -94,6 +94,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .stall.city{background:#90C8F0;border-color:#2060A8;color:#0A2860;}
 .stall.passage{background:#F08080;border-color:#C02020;color:#600A0A;}
 .stall.booked{background:#C8C8C8!important;border-color:#888!important;color:#555!important;opacity:0.7;}
+.stall.disabled{background:#1a1a1a!important;border-color:#000!important;color:#555!important;cursor:not-allowed!important;opacity:0.55;}
+.stall.disabled:hover{transform:none!important;box-shadow:none!important;}
 .stall.selected{transform:scale(1.1);z-index:20;box-shadow:0 0 0 3px var(--saffron),0 4px 20px rgba(232,114,12,0.4);}
 .map-label{position:absolute;font-size:10px;font-weight:700;color:#fff;background:var(--ink);padding:3px 8px;border-radius:4px;letter-spacing:0.5px;}
 
@@ -265,6 +267,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .breakdown-bar{height:8px;background:var(--cream);border-radius:4px;overflow:hidden;}
 .breakdown-fill{height:100%;background:linear-gradient(90deg,var(--rose),#e87575);border-radius:4px;transition:width 0.4s ease;}
 
+/* ── STALL MANAGEMENT GRID ───────────────────────────────────── */
+.stall-mgmt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px;margin-top:4px;}
+.stall-mgmt-btn{padding:8px 4px;border-radius:8px;border:2px solid transparent;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-align:center;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.stall-mgmt-btn.active-food{background:var(--food-bg);border-color:#E8A800;color:#7A4A00;}
+.stall-mgmt-btn.active-grand{background:var(--grand-bg);border-color:#2A8A50;color:#0A4A20;}
+.stall-mgmt-btn.active-city{background:var(--city-bg);border-color:#2060A8;color:#0A2860;}
+.stall-mgmt-btn.active-passage{background:var(--passage-bg);border-color:#C02020;color:#600A0A;}
+.stall-mgmt-btn.disabled-stall{background:#1a1a1a;border-color:#000;color:#aaa;}
+.stall-mgmt-btn .mgmt-status{font-size:9px;font-weight:600;opacity:0.7;}
+
 /* ── HOLD-TO-CONFIRM BUTTON ──────────────────────────────────── */
 .hold-btn{position:relative;width:100%;padding:18px;background:var(--rose);color:#fff;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
 .hold-btn .hold-fill{position:absolute;inset:0;background:rgba(0,0,0,0.25);width:0%;transition:width 0.1s linear;pointer-events:none;}
@@ -411,6 +423,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <div class="legend-item"><div class="legend-dot" style="background:#90C8F0;border:1.5px solid #2060A8"></div>City Arena</div>
       <div class="legend-item"><div class="legend-dot" style="background:#F08080;border:1.5px solid #C02020"></div>Passage</div>
       <div class="legend-item"><div class="legend-dot" style="background:#C8C8C8;border:1.5px solid #888"></div>Booked</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1a1a1a;border:1.5px solid #000"></div>Disabled</div>
     </div>
   </div>
   <div class="map-container"><div class="floor-map" id="floorMap"></div></div>
@@ -489,6 +502,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
         💡 Saves a permanent snapshot of current bookings + financials.
       </div>
       <div id="archive-list"></div>
+    </div>
+  </div>
+
+  <div class="admin-section">
+    <div class="admin-section-title">🚫 Stall Management</div>
+    <div class="admin-card">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5">
+        Click any stall to <strong>disable</strong> or <strong>re-enable</strong> it. Disabled stalls appear blacked out on the floor map and cannot be booked.
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;font-weight:600;">
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:#1a1a1a;border:1.5px solid #000;display:inline-block"></span> Disabled</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--food-bg);border:1.5px solid #E8A800;display:inline-block"></span> Food</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--grand-bg);border:1.5px solid #2A8A50;display:inline-block"></span> Grand Tree</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--city-bg);border:1.5px solid #2060A8;display:inline-block"></span> City Arena</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--passage-bg);border:1.5px solid #C02020;display:inline-block"></span> Passage</span>
+      </div>
+      <div class="stall-mgmt-grid" id="stall-mgmt-grid"></div>
     </div>
   </div>
 
@@ -629,6 +659,7 @@ var STALL_POSITIONS = {
 // STATE
 // ═══════════════════════════════════════════════════════════════
 var bookings         = [];
+var disabledStalls   = [];
 var bookingInProgress = false;
 var financialsState  = null;
 var financialsBusy   = false;
@@ -641,6 +672,7 @@ var resetHoldStart   = 0;
 
 function getBooking(id){ return bookings.find(function(b){return b.stall===id;}); }
 function isBooked(id){ return !!getBooking(id); }
+function isDisabled(id){ return disabledStalls.indexOf(id)!==-1; }
 function pkr(n){ return 'PKR '+Number(n||0).toLocaleString('en-PK'); }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function parseNum(v){ var s=String(v||'').replace(/,/g,'').trim(); var n=parseFloat(s); return isNaN(n)?0:n; }
@@ -682,13 +714,19 @@ async function syncFromSheet(showStatus){
   if(pendingSync) return;
   pendingSync=true;
   if(showStatus) setSyncStatus('syncing');
-  var result=await api('GET','/api/bookings');
+  var results=await Promise.all([
+    api('GET','/api/bookings'),
+    api('GET','/api/disabled-stalls')
+  ]);
   pendingSync=false;
-  if(result && Array.isArray(result.bookings)){
-    bookings=result.bookings;
+  var bookingRes=results[0], disabledRes=results[1];
+  if(bookingRes && Array.isArray(bookingRes.bookings)){
+    bookings=bookingRes.bookings;
+    if(disabledRes && Array.isArray(disabledRes.disabled)) disabledStalls=disabledRes.disabled;
     lastSyncTime=Date.now();
     setSyncStatus('synced');
     refreshAll();
+    if(document.getElementById('view-map').classList.contains('active')) renderMap();
   } else {
     setSyncStatus('offline');
   }
@@ -808,11 +846,12 @@ function renderMap(){
     if(!def) return;
     var el=document.createElement('div');
     var cls='stall '+def.z;
-    if(!def.a||isBooked(id)) cls+=' booked';
+    if(isDisabled(id)) cls+=' disabled';
+    else if(!def.a||isBooked(id)) cls+=' booked';
     el.className=cls;
     el.style.cssText='left:'+pos[0]+'px;top:'+pos[1]+'px;width:'+pos[2]+'px;height:'+pos[3]+'px;';
     el.textContent=id;
-    el.onclick=function(){openStallPanel(id);};
+    if(!isDisabled(id)) el.onclick=function(){openStallPanel(id);};
     map.appendChild(el);
   });
   scaleMapToFit();
@@ -1058,6 +1097,46 @@ function closeSuccess(){document.getElementById('successModal').classList.remove
 // ═══════════════════════════════════════════════════════════════
 // FINANCIALS
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// STALL MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+function renderStallMgmt(){
+  var grid=document.getElementById('stall-mgmt-grid');
+  if(!grid) return;
+  var zoneOrder=['food','grand','city','passage'];
+  var allStalls=Object.keys(STALL_DEFS).sort(function(a,b){
+    var za=zoneOrder.indexOf(STALL_DEFS[a].z), zb=zoneOrder.indexOf(STALL_DEFS[b].z);
+    if(za!==zb) return za-zb;
+    return a.localeCompare(b,undefined,{numeric:true});
+  });
+  grid.innerHTML='';
+  allStalls.forEach(function(id){
+    var def=STALL_DEFS[id];
+    var dis=isDisabled(id);
+    var btn=document.createElement('button');
+    btn.className='stall-mgmt-btn '+(dis?'disabled-stall':'active-'+def.z);
+    btn.innerHTML='<span>'+id+'</span><span class="mgmt-status">'+(dis?'DISABLED':'active')+'</span>';
+    btn.title=(dis?'Click to enable':'Click to disable')+' '+id;
+    btn.onclick=function(){ toggleStall(id, dis); };
+    grid.appendChild(btn);
+  });
+}
+
+async function toggleStall(id, currentlyDisabled){
+  var result;
+  if(currentlyDisabled){
+    result=await api('DELETE','/api/disabled-stalls/'+id);
+  } else {
+    result=await api('POST','/api/disabled-stalls/'+id);
+  }
+  if(result && Array.isArray(result.disabled)){
+    disabledStalls=result.disabled;
+    renderStallMgmt();
+    if(document.getElementById('view-map').classList.contains('active')) renderMap();
+    showToast(id+(currentlyDisabled?' enabled ✓':' disabled ✓'),'success');
+  }
+}
+
 async function loadFinancials(){
   var result=await api('GET','/api/financials');
   if(result&&result.summary){
@@ -1072,6 +1151,7 @@ async function loadFinancials(){
     archName.value='Event - '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
   }
   loadArchivedEvents();
+  renderStallMgmt();
 }
 
 function renderFinancials(){

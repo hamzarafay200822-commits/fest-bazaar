@@ -24,10 +24,11 @@ mongoose.connect(MONGO_URI)
   .catch(err => console.error('❌ MongoDB error:', err.message));
 
 const anySchema = new mongoose.Schema({}, { strict: false });
-const Booking  = mongoose.model('Booking',  anySchema, 'bookings');
-const Capital  = mongoose.model('Capital',  anySchema, 'capital');
-const Expense  = mongoose.model('Expense',  anySchema, 'expenses');
-const Archive  = mongoose.model('Archive',  anySchema, 'archive');
+const Booking       = mongoose.model('Booking',       anySchema, 'bookings');
+const Capital       = mongoose.model('Capital',       anySchema, 'capital');
+const Expense       = mongoose.model('Expense',       anySchema, 'expenses');
+const Archive       = mongoose.model('Archive',       anySchema, 'archive');
+const DisabledStall = mongoose.model('DisabledStall', anySchema, 'disabled_stalls');
 
 async function loadDB() {
   const [bookings, capital, expenses, archive] = await Promise.all([
@@ -299,6 +300,31 @@ app.delete('/api/archive/:id', async (req, res) => {
     const data = await loadDB();
     res.json({ success:true, events:archiveList(data.archive) });
   } catch(e) { console.error(e); res.json({ success:false, error: e.message }); }
+});
+
+// ── Disabled Stalls ───────────────────────────────────────────
+app.get('/api/disabled-stalls', async (req, res) => {
+  try {
+    const rows = await DisabledStall.find({}).lean();
+    res.json({ disabled: rows.map(r => r.stall) });
+  } catch(e) { res.json({ disabled: [] }); }
+});
+
+app.post('/api/disabled-stalls/:stall', async (req, res) => {
+  try {
+    const existing = await DisabledStall.findOne({ stall: req.params.stall });
+    if (!existing) await DisabledStall.create({ stall: req.params.stall });
+    const rows = await DisabledStall.find({}).lean();
+    res.json({ success: true, disabled: rows.map(r => r.stall) });
+  } catch(e) { res.json({ success: false, error: e.message }); }
+});
+
+app.delete('/api/disabled-stalls/:stall', async (req, res) => {
+  try {
+    await DisabledStall.deleteOne({ stall: req.params.stall });
+    const rows = await DisabledStall.find({}).lean();
+    res.json({ success: true, disabled: rows.map(r => r.stall) });
+  } catch(e) { res.json({ success: false, error: e.message }); }
 });
 
 // ── Reset ─────────────────────────────────────────────────────
