@@ -4,31 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Fest Bazaar — Stall Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.29.0/dist/tabler-icons.min.css">
 <style>
 /* ── TOKENS ───────────────────────────────────────────────────── */
 :root {
-  /* Brand */
-  --maroon:#6B1B2A; --gold:#C9A060; --bg:#FDF8F4;
-  --surface:#fff; --border:#EEE6E0;
-  --ink:#1A0A0D; --muted:#A88888;
-  /* Semantic */
-  --success:#246B38; --success-bg:#E8F5EC;
-  --warn:#7A5810;   --warn-bg:#FEF5E0;
-  --danger:#8B2020; --danger-bg:#FCEAEA;
-  /* Zone colours (unchanged) */
+  --ink:#1A1A2E; --paper:#FDFAF5; --saffron:#E8720C; --teal:#1B6B5A;
+  --rose:#C94B4B; --sky:#3B82C4; --cream:#F5EFE0; --muted:#8A7E6E;
+  --border:#E2D9C8; --shadow:rgba(26,26,46,0.12);
   --food:#E8720C; --grand:#1B6B5A; --city:#3B82C4; --passage:#C94B4B;
   --food-bg:#FFF3E8; --grand-bg:#E8F5F0; --city-bg:#E8F0FA; --passage-bg:#FAE8E8;
-  /* Payment status */
-  --cleared:#246B38; --partial:#7A5810; --pending:#8B2020;
-  --cleared-bg:#E8F5EC; --partial-bg:#FEF5E0; --pending-bg:#FCEAEA;
-  /* Legacy aliases so existing CSS keeps working */
-  --paper:#FDF8F4; --saffron:#C9A060; --teal:#246B38;
-  --rose:#8B2020; --sky:#3B82C4;
-  --cream:#F5EDE8; --shadow:rgba(107,27,42,0.08);
+  --cleared:#2D7A4F; --partial:#B8860B; --pending:#C94B4B;
+  --cleared-bg:#E8F5EE; --partial-bg:#FFF8E1; --pending-bg:#FDEAEA;
+  /* sidebar accent kept for nav */
+  --maroon:#1A1A2E; --gold:#E8720C;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;overflow-x:hidden;font-size:14px;font-weight:400;}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;overflow-x:hidden;}
 
 /* ── SIDEBAR ─────────────────────────────────────────────────── */
 .sidebar{
@@ -111,20 +103,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .view.active{display:block;}
 
 /* ── SECTION TITLE ───────────────────────────────────────────── */
-.section-title{font-size:15px;font-weight:500;margin-bottom:12px;color:var(--ink);}
+.section-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:16px;color:var(--ink);}
 
-/* ── OLD KPI GRID (hidden, kept for JS compat) ───────────────── */
-.kpi-grid{display:none;}
-
-/* ── NEW DASHBOARD KPI CARDS ─────────────────────────────────── */
-.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
-.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 13px;}
-.kpi-card-lbl{font-size:10px;color:var(--muted);letter-spacing:0.02em;margin-bottom:3px;}
-.kpi-card-val{font-size:20px;font-weight:500;color:var(--ink);line-height:1.2;font-variant-numeric:tabular-nums;}
-.kpi-card-val.danger{color:var(--danger);}
-.kpi-card-denom{font-size:13px;font-weight:400;color:var(--muted);}
-.kpi-card-sub{font-size:9px;margin-top:2px;color:var(--warn);}
-.kpi-card-sub.danger{color:var(--danger);}
+/* ── KPI GRID ────────────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:28px;}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px;text-align:center;box-shadow:0 2px 12px var(--shadow);transition:transform 0.15s;}
+.kpi:hover{transform:translateY(-2px);}
+.kpi-value{font-family:'Inter',sans-serif;font-size:38px;font-weight:800;line-height:1;margin-bottom:6px;letter-spacing:-1px;font-variant-numeric:tabular-nums;}
+.kpi-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);}
+.kpi.booked .kpi-value{color:var(--teal);}
+.kpi.available .kpi-value{color:var(--sky);}
+.kpi.cleared .kpi-value{color:var(--cleared);}
+.kpi.partial .kpi-value{color:var(--partial);}
+.kpi.pending .kpi-value{color:var(--pending);}
 
 /* ── FINANCE CARDS ───────────────────────────────────────────── */
 .finance-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px;}
@@ -165,7 +156,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .stall.booked{background:#C8C8C8!important;border-color:#888!important;color:#555!important;opacity:0.7;}
 .stall.disabled{background:#1a1a1a!important;border-color:#000!important;color:#555!important;cursor:not-allowed!important;opacity:0.55;}
 .stall.disabled:hover{transform:none!important;box-shadow:none!important;}
-.stall.selected{transform:scale(1.1);z-index:20;box-shadow:0 0 0 3px var(--maroon),0 4px 20px rgba(107,27,42,0.4);}
+.stall.selected{transform:scale(1.1);z-index:20;box-shadow:0 0 0 3px var(--saffron),0 4px 20px rgba(232,114,12,0.4);}
 .map-label{position:absolute;font-size:10px;font-weight:700;color:#fff;background:var(--ink);padding:3px 8px;border-radius:4px;letter-spacing:0.5px;}
 
 /* ── DETAIL PANEL ────────────────────────────────────────────── */
@@ -206,14 +197,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .form-group{display:grid;gap:6px;}
 .form-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);}
 .form-input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;background:#fff;outline:none;transition:border-color 0.2s;}
-.form-input:focus{border-color:var(--maroon);box-shadow:0 0 0 3px rgba(107,27,42,0.1);}
+.form-input:focus{border-color:var(--saffron);box-shadow:0 0 0 3px rgba(232,114,12,0.1);}
 .form-input.error{border-color:var(--rose);}
 .num-input{font-family:inherit;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-0.2px;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .due-display{padding:10px 14px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:700;color:var(--pending);font-family:inherit;font-variant-numeric:tabular-nums;letter-spacing:-0.2px;}
 
 /* ── BUTTONS ─────────────────────────────────────────────────── */
-.btn-book{width:100%;padding:14px;background:var(--maroon);color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;margin-top:4px;}
+.btn-book{width:100%;padding:14px;background:var(--saffron);color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;margin-top:4px;}
 .btn-book:hover:not(:disabled){background:#d4620a;transform:translateY(-1px);}
 .btn-book:disabled{background:#aaa;cursor:not-allowed;transform:none;}
 .btn-secondary{width:100%;padding:11px;background:#fff;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;margin-top:8px;}
@@ -228,9 +219,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* ── SEARCH + BOOKING CARDS ──────────────────────────────────── */
 .search-bar{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;margin-bottom:16px;outline:none;transition:border-color 0.2s;}
-.search-bar:focus{border-color:var(--maroon);}
+.search-bar:focus{border-color:var(--saffron);}
 .booking-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;cursor:pointer;transition:all 0.2s;box-shadow:0 1px 6px var(--shadow);}
-.booking-card:hover{border-color:var(--maroon);transform:translateY(-1px);box-shadow:0 4px 16px var(--shadow);}
+.booking-card:hover{border-color:var(--saffron);transform:translateY(-1px);box-shadow:0 4px 16px var(--shadow);}
 .bc-stall{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:inherit;font-size:14px;font-weight:800;letter-spacing:-0.3px;}
 .bc-stall.food{background:var(--food-bg);color:var(--food);}
 .bc-stall.grand{background:var(--grand-bg);color:var(--grand);}
@@ -262,7 +253,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .success-stall{display:inline-block;background:var(--ink);color:#fff;padding:4px 12px;border-radius:8px;font-weight:700;font-size:14px;margin-bottom:14px;}
 .success-detail{font-size:14px;color:var(--muted);margin-bottom:24px;line-height:1.5;}
 .success-detail strong{color:var(--ink);}
-.success-close{background:var(--maroon);color:#fff;border:none;padding:12px 32px;border-radius:10px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;transition:background 0.2s;}
+.success-close{background:var(--saffron);color:#fff;border:none;padding:12px 32px;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:background 0.2s;}
 .success-close:hover{background:#d4620a;}
 
 /* ── OVERLAY ─────────────────────────────────────────────────── */
@@ -275,13 +266,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .passcode-wall{position:fixed;inset:0;background:linear-gradient(160deg,#1A1A2E 0%,#0F3460 60%,#16213E 100%);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:24px;}
 .passcode-wall.hidden{display:none;}
 .passcode-logo{font-family:inherit;font-size:36px;font-weight:900;color:#fff;margin-bottom:6px;text-align:center;}
-.passcode-logo span{color:var(--maroon);}
+.passcode-logo span{color:var(--saffron);}
 .passcode-sub{font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:40px;text-align:center;}
 .passcode-box{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:32px 28px;width:100%;max-width:340px;text-align:center;backdrop-filter:blur(10px);}
 .passcode-label{font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;}
 .passcode-dots{display:flex;justify-content:center;gap:14px;margin-bottom:28px;}
 .passcode-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);background:transparent;transition:all 0.15s;}
-.passcode-dot.filled{background:var(--maroon);border-color:var(--maroon);transform:scale(1.1);}
+.passcode-dot.filled{background:var(--saffron);border-color:var(--saffron);transform:scale(1.1);}
 .passcode-dot.error{background:var(--rose);border-color:var(--rose);}
 .passcode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
 .passcode-key{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:18px 10px;font-family:inherit;font-size:22px;font-weight:700;color:#fff;cursor:pointer;user-select:none;transition:all 0.15s;}
@@ -292,12 +283,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* ── ADMIN PORTAL ────────────────────────────────────────────── */
 .admin-header{background:var(--maroon);color:#fff;border-radius:8px;padding:24px 28px;margin-bottom:28px;box-shadow:0 4px 20px var(--shadow);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
-.admin-header-title{font-family:inherit;font-size:24px;font-weight:900;letter-spacing:-0.5px;}
+.admin-header-title{font-family:'Playfair Display',serif;font-size:24px;font-weight:900;letter-spacing:-0.5px;}
 .admin-header-sub{font-size:13px;color:rgba(255,255,255,0.6);margin-top:4px;}
 .admin-exit-btn{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);padding:8px 16px;border-radius:8px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;transition:background 0.2s;}
 .admin-exit-btn:hover{background:rgba(255,255,255,0.2);}
 .admin-section{margin-bottom:28px;}
-.admin-section-title{font-family:inherit;font-size:18px;font-weight:700;margin-bottom:12px;color:var(--ink);display:flex;align-items:center;gap:8px;}
+.admin-section-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:12px;color:var(--ink);display:flex;align-items:center;gap:8px;}
 .admin-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 2px 10px var(--shadow);}
 .admin-form-row{display:grid;gap:10px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border);}
 .admin-form-row.cap{grid-template-columns:1fr 180px 110px;}
@@ -360,10 +351,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .topbar{display:none;}
   .mobile-header{display:flex;}
   .mobile-nav{display:block;}
-  .view{padding:10px 12px 70px;}
-  #dash-grid{grid-template-columns:1fr!important;}
-  .kpi-row{grid-template-columns:1fr 1fr;}
-  .kpi-row .kpi-card:first-child{grid-column:span 2;}
+  .view{padding:14px 12px 70px;}
+  .kpi-grid{grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;}
+  .kpi{padding:14px 6px;border-radius:14px;}
+  .kpi-value{font-size:28px;margin-bottom:4px;}
+  .kpi-label{font-size:10px;}
+  .finance-row{grid-template-columns:1fr;gap:10px;margin-bottom:22px;}
+  .zone-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
   .map-container{padding:6px;border-radius:8px;}
   .floor-map{transform-origin:top left;}
   .search-bar{padding:12px 14px;font-size:15px;min-height:44px;}
@@ -388,8 +382,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .passcode-key{padding:18px 8px;font-size:20px;min-height:56px;}
 }
 @media(max-width:380px){
-  .kpi-card-val{font-size:16px;}
-  .bc-stall{width:38px;height:38px;font-size:11px;}
+  .kpi-value{font-size:24px;}
+  .bc-stall{width:46px;height:46px;font-size:13px;}
 }
 </style>
 </head>
@@ -491,70 +485,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <!-- DASHBOARD VIEW -->
   <div class="view active" id="view-dashboard">
-    <!-- 3 KPI Cards -->
-    <div class="kpi-row">
-      <div class="kpi-card">
-        <div class="kpi-card-lbl">Revenue</div>
-        <div class="kpi-card-val" id="kpi-revenue">₨ 0</div>
-        <div class="kpi-card-sub" id="kpi-revenue-sub">—</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-card-lbl">Stalls filled</div>
-        <div class="kpi-card-val"><span id="kpi-booked">0</span><span class="kpi-card-denom"> / <span id="kpi-total">—</span></span></div>
-        <div class="kpi-card-sub" id="kpi-capacity-sub">—</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-card-lbl">Payments due</div>
-        <div class="kpi-card-val danger" id="kpi-due-amount">₨ 0</div>
-        <div class="kpi-card-sub danger" id="kpi-due-sub">—</div>
-      </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-value" id="kpi-total">—</div><div class="kpi-label">Total Stalls</div></div>
+      <div class="kpi booked"><div class="kpi-value" id="kpi-booked">—</div><div class="kpi-label">Booked</div></div>
+      <div class="kpi available"><div class="kpi-value" id="kpi-available">—</div><div class="kpi-label">Available</div></div>
+      <div class="kpi cleared"><div class="kpi-value" id="kpi-cleared">—</div><div class="kpi-label">Cleared</div></div>
+      <div class="kpi partial"><div class="kpi-value" id="kpi-partial">—</div><div class="kpi-label">Partial</div></div>
+      <div class="kpi pending"><div class="kpi-value" id="kpi-pending">—</div><div class="kpi-label">Pending</div></div>
     </div>
-
-    <!-- Two-panel grid -->
-    <div id="dash-grid" style="display:grid;grid-template-columns:5fr 6fr;gap:10px;margin-top:10px;">
-      <!-- Left: Occupancy -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px;">
-        <div style="font-size:10px;color:var(--muted);letter-spacing:0.02em;margin-bottom:10px;">Stall occupancy</div>
-        <div style="height:8px;background:#F0E4DE;border-radius:4px;overflow:hidden;display:flex;margin-bottom:10px;">
-          <div id="occ-bar-cleared" style="background:var(--maroon);height:100%;width:0%;transition:width 0.5s;"></div>
-          <div id="occ-bar-partial" style="background:var(--gold);height:100%;width:0%;transition:width 0.5s;"></div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div style="width:8px;height:8px;border-radius:2px;background:var(--maroon);flex-shrink:0;"></div>
-            <span style="font-size:10px;color:var(--muted);flex:1;">Cleared</span>
-            <span style="font-size:11px;font-weight:500;color:var(--ink);" id="occ-n-cleared">0</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div style="width:8px;height:8px;border-radius:2px;background:var(--gold);flex-shrink:0;"></div>
-            <span style="font-size:10px;color:var(--muted);flex:1;">Partial / Pending</span>
-            <span style="font-size:11px;font-weight:500;color:var(--ink);" id="occ-n-partial">0</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div style="width:8px;height:8px;border-radius:2px;background:#E8DDD8;flex-shrink:0;"></div>
-            <span style="font-size:10px;color:var(--muted);flex:1;">Available</span>
-            <span style="font-size:11px;font-weight:500;color:var(--ink);" id="occ-n-avail">0</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right: Recent payments -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px;">
-        <div id="dash-pay-alert" style="display:none;background:#FFF8EE;border:1px solid #F0D090;border-radius:6px;padding:7px 10px;margin-bottom:10px;font-size:9px;color:#7A5010;align-items:center;gap:6px;">
-          <div style="width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0;"></div>
-          <span id="dash-pay-alert-txt"></span>
-        </div>
-        <div id="dash-pay-list"></div>
-      </div>
+    <div class="section-title">Financial Overview</div>
+    <div class="finance-row">
+      <div class="finance-card total"><div class="label">Total Expected</div><div class="amount" id="fin-total">—</div></div>
+      <div class="finance-card collected"><div class="label">Collected</div><div class="amount" id="fin-collected">—</div></div>
+      <div class="finance-card outstanding"><div class="label">Outstanding</div><div class="amount" id="fin-outstanding">—</div></div>
     </div>
-
-    <!-- Hidden legacy IDs for JS compatibility -->
-    <div style="display:none;">
-      <span id="kpi-available"></span><span id="kpi-cleared"></span>
-      <span id="kpi-partial"></span><span id="kpi-pending"></span>
-      <span id="fin-total"></span><span id="fin-collected"></span><span id="fin-outstanding"></span>
-      <span id="zone-food"></span><span id="zone-grand"></span>
-      <span id="zone-city"></span><span id="zone-passage"></span>
+    <div class="section-title">Bookings by Zone</div>
+    <div class="zone-grid">
+      <div class="zone-card food"><div><div class="zone-name">🍜 Food Stalls</div><div style="font-size:11px;color:var(--muted);margin-top:2px">F1–F15</div></div><div class="zone-count" id="zone-food">—</div></div>
+      <div class="zone-card grand"><div><div class="zone-name">🌳 Grand Tree</div><div style="font-size:11px;color:var(--muted);margin-top:2px">G1–G26</div></div><div class="zone-count" id="zone-grand">—</div></div>
+      <div class="zone-card city"><div><div class="zone-name">🏙 City Arena</div><div style="font-size:11px;color:var(--muted);margin-top:2px">C1–C35</div></div><div class="zone-count" id="zone-city">—</div></div>
+      <div class="zone-card passage"><div><div class="zone-name">🚶 Passage</div><div style="font-size:11px;color:var(--muted);margin-top:2px">P1–P6</div></div><div class="zone-count" id="zone-passage">—</div></div>
     </div>
   </div>
 
@@ -630,59 +580,58 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
   </div>
 
+  <!-- Category breakdown — collapsible -->
   <div class="admin-section">
-    <div class="admin-section-title">📦 Expenses by Category</div>
-    <div class="admin-card" id="category-breakdown"></div>
-  </div>
-
-  <div class="admin-section">
-    <div class="admin-section-title">📚 Past Events Archive</div>
-    <div class="admin-card">
-      <div style="display:grid;grid-template-columns:1fr 110px;gap:10px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
-        <input class="form-input" id="archive-name" placeholder="Event name (e.g. Eid Bazaar 2026)"/>
-        <button class="admin-add-btn teal" id="btn-archive" onclick="archiveEvent()">📥 Archive</button>
-      </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.5">
-        💡 Saves a permanent snapshot of current bookings + financials.
-      </div>
-      <div id="archive-list"></div>
+    <div class="admin-section-title" style="cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;" onclick="adminToggle('cat-panel','cat-arrow')">
+      <span>📦 Expenses by Category</span>
+      <span id="cat-arrow" style="font-size:13px;color:var(--muted);font-weight:500;">▼ Show</span>
+    </div>
+    <div class="admin-card" id="cat-panel" style="display:none">
+      <div id="category-breakdown"></div>
     </div>
   </div>
 
+  <!-- Stall management — collapsible -->
   <div class="admin-section">
     <div class="admin-section-title" style="cursor:pointer;user-select:none;justify-content:space-between;display:flex;align-items:center" onclick="toggleStallMgmt()">
       <span>🚫 Stall Management</span>
-      <span id="stall-mgmt-arrow" style="font-size:13px;color:var(--muted);font-family:inherit;font-weight:500">▼ Show</span>
+      <span id="stall-mgmt-arrow" style="font-size:13px;color:var(--muted);font-weight:500">▼ Show</span>
     </div>
     <div class="admin-card" id="stall-mgmt-panel" style="display:none">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5">
-        Click any stall to <strong>disable</strong> or <strong>re-enable</strong> it. Disabled stalls appear blacked out on the floor map and cannot be booked.
-      </div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;font-weight:600;">
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:#1a1a1a;border:1.5px solid #000;display:inline-block"></span> Disabled</span>
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--food-bg);border:1.5px solid #E8A800;display:inline-block"></span> Food</span>
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--grand-bg);border:1.5px solid #2A8A50;display:inline-block"></span> Grand Tree</span>
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--city-bg);border:1.5px solid #2060A8;display:inline-block"></span> City Arena</span>
-        <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--passage-bg);border:1.5px solid #C02020;display:inline-block"></span> Passage</span>
-      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5">Click any stall to <strong>disable</strong> or <strong>re-enable</strong> it.</div>
       <div class="stall-mgmt-grid" id="stall-mgmt-grid"></div>
     </div>
   </div>
 
+  <!-- Past Events Archive — collapsible -->
   <div class="admin-section">
-    <div class="admin-section-title" style="color:var(--rose)">⚠️ Danger Zone</div>
-    <div class="admin-card" style="border:2px solid var(--rose);background:linear-gradient(180deg,#fff,#FDEAEA);">
-      <div style="font-family:inherit;font-size:17px;font-weight:700;color:var(--rose);margin-bottom:6px">Reset for Next Event</div>
-      <div style="font-size:13px;color:var(--ink);line-height:1.6;margin-bottom:14px">
-        Clears all current bookings, capital entries, and expenses. <strong>Past archives are kept permanently.</strong>
+    <div class="admin-section-title" style="cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;" onclick="adminToggle('archive-panel','archive-arrow')">
+      <span>📚 Past Events Archive</span>
+      <span id="archive-arrow" style="font-size:13px;color:var(--muted);font-weight:500;">▼ Show</span>
+    </div>
+    <div class="admin-card" id="archive-panel" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 110px;gap:10px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <input class="form-input" id="archive-name" placeholder="Event name (e.g. Eid Bazaar 2026)"/>
+        <button class="admin-add-btn teal" id="btn-archive" onclick="archiveEvent()">📥 Archive</button>
       </div>
-      <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:16px;padding:10px 12px;background:rgba(255,255,255,0.6);border-radius:8px;border:1px dashed var(--rose)">
-        <strong>This will:</strong><br>
-        ① Force archive the current event first<br>
-        ② Auto-download CSV backup<br>
-        ③ Clear all bookings, capital, and expenses
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.5">💡 Saves a permanent snapshot of current bookings + financials.</div>
+      <div id="archive-list"></div>
+    </div>
+  </div>
+
+  <!-- Danger Zone — collapsible -->
+  <div class="admin-section">
+    <div class="admin-section-title" style="cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;color:var(--rose);" onclick="adminToggle('danger-panel','danger-arrow')">
+      <span>⚠️ Danger Zone</span>
+      <span id="danger-arrow" style="font-size:13px;color:var(--rose);font-weight:500;">▼ Show</span>
+    </div>
+    <div id="danger-panel" style="display:none">
+      <div class="admin-card" style="border:2px solid var(--rose);">
+        <div style="font-size:13px;color:var(--ink);line-height:1.6;margin-bottom:14px">
+          Clears all current bookings, capital entries, and expenses. <strong>Past archives are kept permanently.</strong>
+        </div>
+        <button class="btn-book btn-red-solid" onclick="startResetFlow()" style="background:var(--rose)">🔄 Reset for Next Event</button>
       </div>
-      <button class="btn-book btn-red-solid" onclick="startResetFlow()" style="background:var(--rose)">🔄 Reset for Next Event</button>
     </div>
   </div>
 </div>
@@ -965,15 +914,6 @@ function setAdminTabVisible(visible){
 // ═══════════════════════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════════════════════
-function setEl(id,val){ var e=document.getElementById(id); if(e) e.textContent=val; }
-
-function compactPkr(n){
-  n=Number(n||0);
-  if(n>=100000) return '₨ '+(n/100000).toFixed(1).replace(/\.0$/,'')+'L';
-  if(n>=1000)   return '₨ '+(n/1000).toFixed(1).replace(/\.0$/,'')+'k';
-  return '₨ '+n.toLocaleString('en-PK');
-}
-
 function refreshDashboard(){
   var booked    =bookings.length;
   var cleared   =bookings.filter(function(b){return b.paymentStatus==='cleared';}).length;
@@ -982,68 +922,21 @@ function refreshDashboard(){
   var totalAmt  =bookings.reduce(function(s,b){return s+(b.total||0);},0);
   var collected =bookings.reduce(function(s,b){return s+(b.paid||0);},0);
   var outstanding=bookings.reduce(function(s,b){return s+(b.due||0);},0);
-  var avail     =TOTAL_ACTIVE-booked;
 
-  // Legacy hidden IDs (still set for any dependent code)
-  setEl('kpi-total',TOTAL_ACTIVE); setEl('kpi-booked',booked);
-  setEl('kpi-available',avail);    setEl('kpi-cleared',cleared);
-  setEl('kpi-partial',partial);    setEl('kpi-pending',pending);
-  setEl('fin-total',pkr(totalAmt));setEl('fin-collected',pkr(collected));
-  setEl('fin-outstanding',pkr(outstanding));
+  document.getElementById('kpi-total').textContent     =TOTAL_ACTIVE;
+  document.getElementById('kpi-booked').textContent    =booked;
+  document.getElementById('kpi-available').textContent =TOTAL_ACTIVE-booked;
+  document.getElementById('kpi-cleared').textContent   =cleared;
+  document.getElementById('kpi-partial').textContent   =partial;
+  document.getElementById('kpi-pending').textContent   =pending;
+  document.getElementById('fin-total').textContent     =pkr(totalAmt);
+  document.getElementById('fin-collected').textContent =pkr(collected);
+  document.getElementById('fin-outstanding').textContent=pkr(outstanding);
+
   ['food','grand','city','passage'].forEach(function(z){
-    setEl('zone-'+z,bookings.filter(function(b){return STALL_DEFS[b.stall]&&STALL_DEFS[b.stall].z===z;}).length);
+    document.getElementById('zone-'+z).textContent=
+      bookings.filter(function(b){return STALL_DEFS[b.stall]&&STALL_DEFS[b.stall].z===z;}).length;
   });
-
-  // ── New KPI cards ──────────────────────────────────────────
-  setEl('kpi-revenue', compactPkr(collected));
-  setEl('kpi-revenue-sub', totalAmt>0 ? Math.round(collected/totalAmt*100)+'% of expected collected' : '—');
-  setEl('kpi-capacity-sub', TOTAL_ACTIVE>0 ? Math.round(booked/TOTAL_ACTIVE*100)+'% capacity' : '—');
-  setEl('kpi-due-amount', compactPkr(outstanding));
-  var dueCount=partial+pending;
-  setEl('kpi-due-sub', dueCount>0 ? dueCount+' vendor'+(dueCount===1?'':'s')+' overdue' : 'All clear');
-
-  // ── Occupancy bar ──────────────────────────────────────────
-  var pCleared=TOTAL_ACTIVE>0?(cleared/TOTAL_ACTIVE*100):0;
-  var pPartial=TOTAL_ACTIVE>0?((partial+pending)/TOTAL_ACTIVE*100):0;
-  var barC=document.getElementById('occ-bar-cleared');
-  var barP=document.getElementById('occ-bar-partial');
-  if(barC) barC.style.width=pCleared.toFixed(1)+'%';
-  if(barP) barP.style.width=pPartial.toFixed(1)+'%';
-  setEl('occ-n-cleared',cleared);
-  setEl('occ-n-partial',partial+pending);
-  setEl('occ-n-avail',avail);
-
-  // ── Recent payments panel ──────────────────────────────────
-  renderDashPayments(dueCount);
-}
-
-function renderDashPayments(dueCount){
-  var list=document.getElementById('dash-pay-list');
-  var alertEl=document.getElementById('dash-pay-alert');
-  var alertTxt=document.getElementById('dash-pay-alert-txt');
-  if(!list) return;
-  if(alertEl){
-    alertEl.style.display=dueCount>0?'flex':'none';
-    if(alertTxt) alertTxt.textContent=dueCount+' vendor'+(dueCount===1?'':'s')+' with pending or partial payments';
-  }
-  var show=bookings.slice(0,6);
-  if(!show.length){
-    list.innerHTML='<div style="padding:18px;text-align:center;color:var(--muted);font-size:11px;">No bookings yet</div>';
-    return;
-  }
-  list.innerHTML=show.map(function(b){
-    var init=(b.vendor||'?').trim().split(/\s+/).map(function(w){return w[0]||'';}).join('').substring(0,2).toUpperCase();
-    var sc={cleared:'background:#E8F5EC;color:#246B38',partial:'background:#FEF5E0;color:#7A5810',pending:'background:#FCEAEA;color:#8B2020'}[b.paymentStatus]||'background:#FCEAEA;color:#8B2020';
-    var sl={cleared:'Paid',partial:'Partial',pending:'Pending'}[b.paymentStatus]||'—';
-    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #F5EDE8;">'+
-      '<div style="width:26px;height:26px;background:#F5E0E5;border-radius:50%;font-size:8px;font-weight:500;color:#6B1B2A;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+init+'</div>'+
-      '<div style="flex:1;min-width:0;">'+
-        '<div style="font-size:10px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(b.vendor)+'</div>'+
-        '<div class="pay-sub" style="font-size:9px;color:var(--muted);margin-top:1px;">'+esc(b.stall)+' · '+compactPkr(b.total)+'</div>'+
-      '</div>'+
-      '<span style="padding:2px 8px;border-radius:20px;font-size:9px;font-weight:500;flex-shrink:0;'+sc+'">'+sl+'</span>'+
-    '</div>';
-  }).join('')+'<div style="border-bottom:none"></div>';
 }
 
 function refreshAll(){
@@ -1334,6 +1227,22 @@ function closeSuccess(){document.getElementById('successModal').classList.remove
 // ═══════════════════════════════════════════════════════════════
 // FINANCIALS
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// ADMIN COLLAPSIBLE HELPER
+// ═══════════════════════════════════════════════════════════════
+function adminToggle(panelId, arrowId){
+  var panel=document.getElementById(panelId);
+  var arrow=document.getElementById(arrowId);
+  if(!panel) return;
+  var open=panel.style.display==='none';
+  panel.style.display=open?'block':'none';
+  if(arrow) arrow.textContent=open?'▲ Hide':'▼ Show';
+  // reload archive list when opened
+  if(open && panelId==='archive-panel') loadArchivedEvents();
+  // reload category breakdown when opened
+  if(open && panelId==='cat-panel' && financialsState) renderFinancials();
+}
+
 // ═══════════════════════════════════════════════════════════════
 // STALL MANAGEMENT
 // ═══════════════════════════════════════════════════════════════
