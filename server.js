@@ -80,8 +80,8 @@ function mapBooking(r) {
 }
 
 function getFinancials(data) {
-  const capital  = data.capital.map(r => ({ id:r.id, date:fmtDate(r.date), description:r.description||'', amount:r.amount||0 }));
-  const expenses = data.expenses.map(r => ({ id:r.id, date:fmtDate(r.date), category:r.category||'', description:r.description||'', amount:r.amount||0 }));
+  const capital  = data.capital.map(r => ({ id:r._id.toString(), date:fmtDate(r.date), description:r.description||'', amount:r.amount||0 }));
+  const expenses = data.expenses.map(r => ({ id:r._id.toString(), date:fmtDate(r.date), category:r.category||'', description:r.description||'', amount:r.amount||0 }));
   const bookings = data.bookings.map(mapBooking);
 
   const collected   = bookings.reduce((s,b) => s+(b.paid||0), 0);
@@ -139,12 +139,13 @@ app.post('/api/bookings', async (req, res) => {
     const b = req.body;
     if (!b.stall||!b.vendor||!b.brand||!b.phone)
       return res.json({ success:false, error:'Missing required fields' });
+    const total = parseFloat(b.total)||0, paid = parseFloat(b.paid)||0;
+    // findOneAndUpdate with upsert:false used as atomic check — if stall exists, skip insert
     const existing = await Booking.findOne({ stall: b.stall }).lean();
     if (existing) {
       const data = await loadDB();
-      return res.json({ success:false, error:'Double booking: '+b.stall, bookings:data.bookings.map(mapBooking) });
+      return res.json({ success:false, error:'Stall '+b.stall+' is already booked', bookings:data.bookings.map(mapBooking) });
     }
-    const total = parseFloat(b.total)||0, paid = parseFloat(b.paid)||0;
     await Booking.create({
       stall:b.stall, zone:b.zone||'', vendor:b.vendor, brand:b.brand,
       phone:b.phone, items:b.items||'', total, paid,
@@ -153,7 +154,14 @@ app.post('/api/bookings', async (req, res) => {
     });
     const data = await loadDB();
     res.json({ success:true, bookings:data.bookings.map(mapBooking) });
-  } catch(e) { console.error(e); res.json({ success:false, error: e.message }); }
+  } catch(e) {
+    // E11000 = duplicate key — stall already booked (race condition)
+    if (e.code === 11000) {
+      const data = await loadDB();
+      return res.json({ success:false, error:'Stall '+b.stall+' was just booked by someone else', bookings:data.bookings.map(mapBooking) });
+    }
+    console.error(e); res.json({ success:false, error: e.message });
+  }
 });
 
 app.post('/api/bookings/:stall/clear-payment', async (req, res) => {
@@ -224,7 +232,8 @@ app.post('/api/capital', async (req, res) => {
 
 app.delete('/api/capital/:id', async (req, res) => {
   try {
-    await Capital.deleteOne({ id: req.params.id });
+    const del = await Capital.deleteOne({ _id: req.params.id });
+    if (del.deletedCount === 0) return res.json({ success:false, error:'Entry not found' });
     const data = await loadDB();
     res.json({ success:true, financials:getFinancials(data) });
   } catch(e) { console.error(e); res.json({ success:false, error: e.message }); }
@@ -242,7 +251,8 @@ app.post('/api/expenses', async (req, res) => {
 
 app.delete('/api/expenses/:id', async (req, res) => {
   try {
-    await Expense.deleteOne({ id: req.params.id });
+    const del = await Expense.deleteOne({ _id: req.params.id });
+    if (del.deletedCount === 0) return res.json({ success:false, error:'Entry not found' });
     const data = await loadDB();
     res.json({ success:true, financials:getFinancials(data) });
   } catch(e) { console.error(e); res.json({ success:false, error: e.message }); }
@@ -251,7 +261,7 @@ app.delete('/api/expenses/:id', async (req, res) => {
 // ── Archive ───────────────────────────────────────────────────
 function archiveList(archive) {
   return [...archive].sort((a,b) => new Date(b.archived_date)-new Date(a.archived_date))
-    .map(r => ({ id:r.id, name:r.name||'', date:fmtDateTime(r.archived_date),
+    .map(r => ({ id:r._id.toString(), name:r.name||'', date:fmtDateTime(r.archived_date),
       dateRaw: new Date(r.archived_date).getTime(),
       bookingsCount:r.bookings_count||0, revenue:r.revenue||0,
       capital:r.capital_amount||0, expenses:r.expenses_amount||0, netProfit:r.net_profit||0 }));
@@ -266,10 +276,9 @@ app.get('/api/archive', async (req, res) => {
 
 app.get('/api/archive/:id', async (req, res) => {
   try {
-    const database = await getDB();
-    const row = await database.collection('archive').findOne({ id: req.params.id });
+    const row = await Archive.findOne({ _id: req.params.id }).lean();
     if (!row) return res.json({ success:false, error:'Not found' });
-    res.json({ success:true, event:{ id:row.id, name:row.name||'',
+    res.json({ success:true, event:{ id:row._id.toString(), name:row.name||'',
       date:fmtDateTime(row.archived_date), bookings:row.bookings_json||[], financials:row.financials_json||null }});
   } catch(e) { res.json({ success:false, error: e.message }); }
 });
@@ -296,7 +305,8 @@ app.post('/api/archive', async (req, res) => {
 
 app.delete('/api/archive/:id', async (req, res) => {
   try {
-    await Archive.deleteOne({ id: req.params.id });
+    const del = await Archive.deleteOne({ _id: req.params.id });
+    if (del.deletedCount === 0) return res.json({ success:false, error:'Archive not found' });
     const data = await loadDB();
     res.json({ success:true, events:archiveList(data.archive) });
   } catch(e) { console.error(e); res.json({ success:false, error: e.message }); }
