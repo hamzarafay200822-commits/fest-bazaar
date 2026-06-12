@@ -1045,6 +1045,7 @@ function openStallPanel(stallId){
         '<div style="display:none;padding:30px;color:var(--muted);font-size:13px">📷 Logo could not load</div>'+
         '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'+
         '<a href="'+esc(booking.logoUrl)+'" target="_blank" style="background:var(--ink);color:#fff;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none">🔍 Full Size</a>'+
+        '<button onclick="downloadLogo(\''+stallId+'\',\''+esc(booking.logoUrl)+'\')" style="background:var(--teal);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">⬇ Download</button>'+
         '<button onclick="triggerLogoReplace(\''+stallId+'\')" style="background:var(--sky);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">🔄 Replace</button>'+
         '<button onclick="confirmRemoveLogo(\''+stallId+'\')" style="background:var(--rose);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">🗑 Remove</button>'+
         '</div></div></div>';
@@ -1707,6 +1708,21 @@ async function uploadLogoFile(stallId, file){
       return false;
     }
   }catch(e){showToast('❌ '+e.message,'error');return false;}
+}
+
+async function downloadLogo(stallId, logoUrl){
+  if(!logoUrl) return;
+  try{
+    var res=await fetch(logoUrl);
+    var blob=await res.blob();
+    var ext=blob.type.split('/')[1]||'png';
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='logo_'+stallId+'.'+ext;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    showToast('✅ Logo downloaded','success');
+  }catch(e){ showToast('❌ Download failed','error'); }
 }
 
 function triggerLogoReplace(stallId){
