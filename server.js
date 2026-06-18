@@ -164,6 +164,28 @@ app.post('/api/bookings', async (req, res) => {
   }
 });
 
+app.put('/api/bookings/:stall', async (req, res) => {
+  try {
+    const row = await Booking.findOne({ stall: req.params.stall }).lean();
+    if (!row) return res.json({ success:false, error:'Booking not found' });
+    const b = req.body;
+    const total = parseFloat(b.total)||0;
+    const paid  = parseFloat(b.paid)||0;
+    const status = paid >= total ? 'cleared' : paid === 0 ? 'pending' : 'partial';
+    await Booking.updateOne({ stall: req.params.stall }, { $set: {
+      vendor: b.vendor || row.vendor,
+      brand:  b.brand  || row.brand,
+      phone:  b.phone  || row.phone,
+      items:  b.items  !== undefined ? b.items : (row.items||''),
+      total, paid,
+      payment_status: status,
+      cleared_date: status === 'cleared' ? (row.cleared_date || new Date().toISOString()) : null
+    }});
+    const data = await loadDB();
+    res.json({ success:true, bookings: data.bookings.map(mapBooking) });
+  } catch(e) { console.error(e); res.json({ success:false, error: e.message }); }
+});
+
 app.post('/api/bookings/:stall/clear-payment', async (req, res) => {
   try {
     const row = await Booking.findOne({ stall: req.params.stall }).lean();

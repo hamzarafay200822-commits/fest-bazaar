@@ -1080,6 +1080,7 @@ function openStallPanel(stallId){
         '<div style="font-size:12px;color:var(--muted);margin-top:6px">Total: '+pkr(booking.total)+'</div>'+
       '</div>'+
       (due>0?'<button class="btn-secondary btn-green" id="btn-clearpay" onclick="clearPayment(\''+stallId+'\')">✔ Mark Fully Paid — '+pkr(due)+' remaining</button>':'')+
+      '<button class="btn-secondary btn-teal" onclick="editBooking(\''+stallId+'\')">✏️ Edit Booking</button>'+
       '<button class="btn-secondary btn-teal" onclick="downloadInvoice(\''+stallId+'\')">🧾 Download Invoice</button>'+
       '<button class="btn-secondary btn-red-outline" onclick="confirmDelete(\''+stallId+'\')">🗑 Remove Booking</button>';
   } else {
@@ -1113,6 +1114,65 @@ function calcDue(){
   var t=parseNum(document.getElementById('f-total').value);
   var p=parseNum(document.getElementById('f-paid').value);
   document.getElementById('f-due').textContent=pkr(Math.max(0,t-p));
+}
+
+function calcEditDue(){
+  var t=parseNum(document.getElementById('ef-total').value);
+  var p=parseNum(document.getElementById('ef-paid').value);
+  document.getElementById('ef-due').textContent=pkr(Math.max(0,t-p));
+}
+
+function editBooking(stallId){
+  var b=getBooking(stallId);
+  if(!b) return;
+  document.getElementById('panel-body').innerHTML=
+    '<div class="status-banner booked" style="margin-bottom:20px">✏️ Editing booking for <strong>'+stallId+'</strong></div>'+
+    '<div class="booking-form">'+
+      '<div class="form-group"><label class="form-label">Vendor Name *</label><input class="form-input" id="ef-vendor" value="'+esc(b.vendor)+'"/></div>'+
+      '<div class="form-group"><label class="form-label">Brand Name *</label><input class="form-input" id="ef-brand" value="'+esc(b.brand)+'"/></div>'+
+      '<div class="form-group"><label class="form-label">Phone Number *</label><input class="form-input" id="ef-phone" type="tel" value="'+esc(b.phone)+'"/></div>'+
+      '<div class="form-group"><label class="form-label">Items / Category</label><input class="form-input" id="ef-items" value="'+esc(b.items||'')+'"/></div>'+
+      '<div class="form-row">'+
+        '<div class="form-group"><label class="form-label">Total Amount (PKR) *</label><input class="form-input num-input" id="ef-total" type="text" inputmode="numeric" value="'+Number(b.total).toLocaleString('en-PK')+'" oninput="formatNumber(this);calcEditDue()"/></div>'+
+        '<div class="form-group"><label class="form-label">Amount Paid (PKR) *</label><input class="form-input num-input" id="ef-paid" type="text" inputmode="numeric" value="'+Number(b.paid).toLocaleString('en-PK')+'" oninput="formatNumber(this);calcEditDue()"/></div>'+
+      '</div>'+
+      '<div class="form-group"><label class="form-label">Amount Due (auto)</label><div class="due-display" id="ef-due">'+pkr(b.due)+'</div></div>'+
+      '<button class="btn-book" id="btn-edit-submit" onclick="submitEditBooking(\''+stallId+'\')">💾 Save Changes</button>'+
+      '<button class="btn-secondary btn-grey" style="margin-top:8px" onclick="openStallPanel(\''+stallId+'\')">↩ Cancel</button>'+
+    '</div>';
+}
+
+async function submitEditBooking(stallId){
+  var vendor=document.getElementById('ef-vendor').value.trim();
+  var brand =document.getElementById('ef-brand').value.trim();
+  var phone =document.getElementById('ef-phone').value.trim();
+  var items =document.getElementById('ef-items').value.trim();
+  var total =parseNum(document.getElementById('ef-total').value);
+  var paid  =parseNum(document.getElementById('ef-paid').value);
+
+  if(!vendor||!brand||!phone||!total){showToast('Please fill all required fields','error');return;}
+  var cleanPhone=phone.replace(/\D/g,'');
+  if(cleanPhone.length!==11){showToast('❌ Phone must be 11 digits','error');document.getElementById('ef-phone').classList.add('error');return;}
+  if(paid>total){showToast('❌ Paid cannot exceed total','error');return;}
+
+  var btn=document.getElementById('btn-edit-submit');
+  btn.disabled=true; btn.textContent='⏳ Saving...';
+
+  var result=await api('PUT','/api/bookings/'+encodeURIComponent(stallId),{
+    vendor:vendor,brand:brand,phone:cleanPhone,items:items,total:total,paid:paid
+  });
+
+  if(!result||!result.success){
+    btn.disabled=false; btn.textContent='💾 Save Changes';
+    showToast('❌ '+(result&&result.error?result.error:'Could not save. Try again.'),'error');
+    return;
+  }
+  if(Array.isArray(result.bookings)){bookings=result.bookings;lastSyncTime=Date.now();setSyncStatus('synced');}
+  openStallPanel(stallId);
+  refreshAll();
+  renderMap();
+  if(document.getElementById('view-admin').classList.contains('active')) loadFinancials();
+  showToast('✅ Booking updated','success');
 }
 
 function closePanel(){
