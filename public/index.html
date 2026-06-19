@@ -258,6 +258,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .success-detail strong{color:var(--ink);}
 .success-close{background:var(--saffron);color:#fff;border:none;padding:12px 32px;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:background 0.2s;}
 .success-close:hover{background:#d4620a;}
+.success-invoice{display:none;background:transparent;color:var(--maroon);border:2px solid var(--maroon);padding:10px 28px;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer;margin-top:10px;transition:background 0.2s,color 0.2s;width:100%;}
+.success-invoice:hover{background:var(--maroon);color:#fff;}
 
 /* ── OVERLAY ─────────────────────────────────────────────────── */
 .overlay-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:190;}
@@ -681,6 +683,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
     <div class="success-stall" id="successStall"></div>
     <div class="success-detail" id="successDetail"></div>
     <button class="success-close" onclick="closeSuccess()">Done</button>
+    <button class="success-invoice" id="successInvoiceBtn" onclick="downloadInvoiceFromModal()">🧾 Download Invoice</button>
   </div>
 </div>
 
@@ -1223,7 +1226,8 @@ async function submitBooking(stallId){
 
   var due=total-paid;
   showSuccess({icon:'✅',title:'Booking Confirmed!',stall:stallId,
-    detail:'<strong>'+esc(brand)+'</strong> ('+esc(vendor)+')<br>Total: '+pkr(total)+' • '+(due>0?pkr(due)+' outstanding':'Fully Paid')});
+    detail:'<strong>'+esc(brand)+'</strong> ('+esc(vendor)+')<br>Total: '+pkr(total)+' • '+(due>0?pkr(due)+' outstanding':'Fully Paid'),
+    invoiceStall:stallId});
 
   if(logoFile){
     showToast('📤 Uploading logo...','');
@@ -1279,14 +1283,24 @@ async function deleteBooking(stallId){
 // ═══════════════════════════════════════════════════════════════
 // SUCCESS MODAL
 // ═══════════════════════════════════════════════════════════════
+var _successInvoiceStall=null;
 function showSuccess(opts){
   document.getElementById('successIcon').textContent  =opts.icon||'✅';
   document.getElementById('successTitle').textContent =opts.title||'Done!';
   document.getElementById('successStall').textContent =opts.stall||'';
   document.getElementById('successDetail').innerHTML  =opts.detail||'';
+  _successInvoiceStall=opts.invoiceStall||null;
+  document.getElementById('successInvoiceBtn').style.display=_successInvoiceStall?'block':'none';
   document.getElementById('successModal').classList.add('show');
 }
-function closeSuccess(){document.getElementById('successModal').classList.remove('show');}
+function closeSuccess(){
+  document.getElementById('successModal').classList.remove('show');
+  _successInvoiceStall=null;
+  document.getElementById('successInvoiceBtn').style.display='none';
+}
+function downloadInvoiceFromModal(){
+  if(_successInvoiceStall) downloadInvoice(_successInvoiceStall);
+}
 
 // ═══════════════════════════════════════════════════════════════
 // FINANCIALS
@@ -1898,8 +1912,14 @@ function generatePDF(stallId,b){
   doc.text('Fest Bazaar  |  Thank you for booking with us!',W/2,y+7,{align:'center'});
   doc.text('For queries, contact the Fest Bazaar team.',W/2,y+12,{align:'center'});
   doc.setFillColor(ac[0],ac[1],ac[2]);doc.rect(0,289,W,4,'F');
-  doc.save('Invoice_'+stallId+'_'+(b.brand||'vendor').replace(/\s+/g,'_')+'.pdf');
-  showToast('🧾 Invoice downloaded!','success');
+  var filename='Invoice_'+stallId+'_'+(b.brand||'vendor').replace(/\s+/g,'_')+'.pdf';
+  if(/iPhone|iPad|iPod/i.test(navigator.userAgent)){
+    doc.output('dataurlnewwindow');
+    showToast('🧾 PDF opened — use Share to save','success');
+  } else {
+    doc.save(filename);
+    showToast('🧾 Invoice downloaded!','success');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
