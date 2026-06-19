@@ -1914,8 +1914,11 @@ function generatePDF(stallId,b){
   doc.setFillColor(ac[0],ac[1],ac[2]);doc.rect(0,289,W,4,'F');
   var filename='Invoice_'+stallId+'_'+(b.brand||'vendor').replace(/\s+/g,'_')+'.pdf';
   if(/iPhone|iPad|iPod/i.test(navigator.userAgent)){
-    doc.output('dataurlnewwindow');
-    showToast('🧾 PDF opened — use Share to save','success');
+    var blob=doc.output('blob');
+    var blobUrl=URL.createObjectURL(blob);
+    window.open(blobUrl,'_blank');
+    setTimeout(function(){URL.revokeObjectURL(blobUrl);},10000);
+    showToast('🧾 PDF opened — tap Share ↑ to save','success');
   } else {
     doc.save(filename);
     showToast('🧾 Invoice downloaded!','success');
