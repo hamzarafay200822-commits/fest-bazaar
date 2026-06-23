@@ -120,6 +120,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .kpi.partial .kpi-value{color:var(--partial);}
 .kpi.pending .kpi-value{color:var(--pending);}
 
+/* ── DAILY ACTIVITY ──────────────────────────────────────────── */
+.daily-activity{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;}
+.da-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:18px 20px;box-shadow:0 2px 12px var(--shadow);display:flex;flex-direction:column;gap:5px;}
+.da-card.today{border-left:4px solid var(--saffron);}
+.da-card.yesterday{border-left:4px solid var(--muted);}
+.da-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);}
+.da-value{font-family:'Inter',sans-serif;font-size:40px;font-weight:800;line-height:1;letter-spacing:-1px;font-variant-numeric:tabular-nums;color:var(--ink);}
+.da-card.today .da-value{color:var(--saffron);}
+.da-sub{font-size:11px;color:var(--muted);font-weight:500;}
+
 /* ── FINANCE CARDS ───────────────────────────────────────────── */
 .finance-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px;}
 .finance-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;box-shadow:0 2px 8px var(--shadow);}
@@ -361,6 +371,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
   .kpi{padding:14px 6px;border-radius:14px;}
   .kpi-value{font-size:28px;margin-bottom:4px;}
   .kpi-label{font-size:10px;}
+  .daily-activity{gap:10px;margin-bottom:20px;}
+  .da-card{padding:14px 16px;}
+  .da-value{font-size:32px;}
   .finance-row{grid-template-columns:1fr;gap:10px;margin-bottom:22px;}
   .zone-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
   .map-container{padding:6px;border-radius:8px;}
@@ -490,6 +503,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 
   <!-- DASHBOARD VIEW -->
   <div class="view active" id="view-dashboard">
+    <div class="daily-activity">
+      <div class="da-card today">
+        <div class="da-label">📅 Booked Today</div>
+        <div class="da-value" id="da-today">—</div>
+        <div class="da-sub">since midnight</div>
+      </div>
+      <div class="da-card yesterday">
+        <div class="da-label">📆 Booked Yesterday</div>
+        <div class="da-value" id="da-yesterday">—</div>
+        <div class="da-sub">previous day</div>
+      </div>
+    </div>
     <div class="kpi-grid">
       <div class="kpi"><div class="kpi-value" id="kpi-total">—</div><div class="kpi-label">Total Stalls</div></div>
       <div class="kpi booked"><div class="kpi-value" id="kpi-booked">—</div><div class="kpi-label">Booked</div></div>
@@ -943,6 +968,32 @@ function refreshDashboard(){
     document.getElementById('zone-'+z).textContent=
       bookings.filter(function(b){return STALL_DEFS[b.stall]&&STALL_DEFS[b.stall].z===z;}).length;
   });
+
+  refreshDailyActivity();
+}
+
+// Pakistan-day bucket key (UTC+5, no DST) — returns "YYYY-M-D" or '' if no timestamp
+function pktDayKey(ts){
+  if(!ts) return '';
+  var t=new Date(ts).getTime();
+  if(isNaN(t)) return '';
+  var d=new Date(t + 5*3600*1000);
+  return d.getUTCFullYear()+'-'+(d.getUTCMonth()+1)+'-'+d.getUTCDate();
+}
+
+function refreshDailyActivity(){
+  var now=Date.now();
+  var todayKey=pktDayKey(now);
+  var yesterdayKey=pktDayKey(now-86400000);
+  var today=0, yesterday=0;
+  bookings.forEach(function(b){
+    var k=pktDayKey(b.bookingTs);
+    if(!k) return;
+    if(k===todayKey) today++;
+    else if(k===yesterdayKey) yesterday++;
+  });
+  var te=document.getElementById('da-today');     if(te) te.textContent=today;
+  var ye=document.getElementById('da-yesterday'); if(ye) ye.textContent=yesterday;
 }
 
 function refreshAll(){

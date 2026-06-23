@@ -75,7 +75,8 @@ function mapBooking(r) {
     phone: r.phone||'', items: r.items||'', total: r.total||0, paid: r.paid||0, due,
     paymentStatus: status, logoUrl: r.logo_url||'',
     clearedDate: r.cleared_date ? fmtDate(r.cleared_date) : '',
-    date: r.booking_date ? fmtDate(r.booking_date) : ''
+    date: r.booking_date ? fmtDate(r.booking_date) : '',
+    bookingTs: r.booking_date || ''
   };
 }
 
