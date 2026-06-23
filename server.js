@@ -10,14 +10,13 @@ const PORT = process.env.PORT || 3000;
 
 // ── Cloudinary ────────────────────────────────────────────────
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dkhfqrrpj',
-  api_key:    process.env.CLOUDINARY_API_KEY    || '369298979387899',
-  api_secret: process.env.CLOUDINARY_API_SECRET || 'M83hGVthkB21yGb1rYXwQPMw_zM'
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 // ── MongoDB via Mongoose ──────────────────────────────────────
-const MONGO_URI = process.env.MONGO_URI ||
-  'mongodb+srv://hamzarafay200822_db_user:0Kk81KugnN4pP7lt@cluster0.bbfh4uq.mongodb.net/festbazaar?appName=Cluster0';
+const MONGO_URI = process.env.MONGO_URI;
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ MongoDB connected'))
