@@ -572,6 +572,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <div class="admin-header-title">🔐 Admin Portal</div>
       <div class="admin-header-sub">Financials &amp; profit/loss tracking</div>
     </div>
+    <button class="admin-exit-btn" onclick="downloadBackup()" style="background:rgba(255,255,255,0.15);margin-right:8px;">💾 Backup Now</button>
     <button class="admin-exit-btn" onclick="logoutAdmin()">Exit Admin</button>
   </div>
 
@@ -2104,6 +2105,28 @@ function logoutAdmin(){
   setAdminTabVisible(false);
   switchTab('dashboard');
   showToast('🔓 Exited admin mode','');
+}
+
+function downloadBackup(){
+  showToast('💾 Preparing backup...','');
+  fetch('/api/bookings')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var list = Array.isArray(data) ? data : (data.bookings || []);
+      var date = new Date().toISOString().split('T')[0];
+      var json = JSON.stringify(list, null, 2);
+      var blob = new Blob([json], {type:'application/json'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'backup_' + date + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+      showToast('✅ Backup downloaded — ' + list.length + ' bookings', 'success');
+    })
+    .catch(function(){ showToast('❌ Backup failed — check connection','error'); });
 }
 
 function logoutUser(){
